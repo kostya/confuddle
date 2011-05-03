@@ -90,6 +90,20 @@ private
   # cached tickets ticket_id -> num
   def tickets
   end
+  
+  # find persons by regexp, if blank than find me
+  def find_persons(regx = "")
+    return nil if regx.nil?
+    regx = MY_REGEXP if regx == ""
+    
+    res = people.select{|id, login| login.mb_chars.downcase =~ /#{regx.mb_chars.strip.downcase}/i}
+    if !res.empty?
+      res.map &:first
+    else
+      puts "no peoples matched #{regx}"
+      []
+    end
+  end
 
   def show_projects
     projects = Unfuzzle.projects
@@ -141,18 +155,8 @@ private
   end
 
   def show_all_active_tickets(name = nil)
-    if !name.blank?
-      res = people.select{|id, login| login.mb_chars.downcase =~ /#{name.mb_chars.strip.downcase}/i}
-      if !res.empty?
-        ass_ids = res.map &:first
-        show_tickets_groups ass_ids
-      else
-        puts "no peoples matched #{name}"
-      end
-         
-    else
-      show_tickets_groups
-    end  
+    ass_ids = find_persons(name == "" ? nil : name)
+    show_tickets_groups(ass_ids)
   end  
   
   def show_tickets_groups(ass_ids = nil)
@@ -306,17 +310,10 @@ private
       ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
  
       # find person
-      new_assignee = MY_REGEXP if new_assignee.blank?
-      res = people.detect{|id, login| login.mb_chars.downcase =~ /#{new_assignee.mb_chars.strip.downcase}/i}
-      ass_id = nil
-      if !res.empty?
-        ass_id = res.first
-      else
-        puts "no peoples matched #{name}"
-        exit 1
-      end
+      ass_ids = find_persons(new_assignee)
+      exit 1 if persons.size < 1
 
-      person = people[ass_id]
+      person = people[ass_ids.first]
 
       puts "Update tickets #{ts.map(&:number) * ','} to assignee #{person}"
 
@@ -333,12 +330,7 @@ private
   
   def new_ticket(title, to = nil, priority = nil)
     # find user
-    to = MY_REGEXP if to.blank?
-    res = people.detect{|id, login| login.mb_chars.downcase =~ /#{to.mb_chars.strip.downcase}/i}
-    if res.blank?
-      "no users matched #{to}"
-    end
-
+    ass_ids = find_persons(to)
     ass_id = res.first
 
     prio = priority.blank? ? 3 : priority.to_i
@@ -356,7 +348,21 @@ private
     say "Its Ok?"
   end
 
-  def add_comment(num)
+  def add_comment(number)
+    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
+    
+    say "Enter body of comment: ", :red, true
+    text = Readline::readline('> ')
+    
+    cm = Unfuzzle::Comment.new
+    cm.body = text
+    cm.author_id = find_persons.first
+    
+    cm.create(project_id, t.id)
+    
+    cms += [cm]
+    
+    render_ticket(t, cms)
   end
 
   def add_time(number, hours, comment = "")
