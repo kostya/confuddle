@@ -11,12 +11,18 @@ module Unfuzzle
     attribute :hours
     attribute :person_id, :from => "person-id", :type => :integer
     attribute :ticket_id, :from => "ticket-id", :time => :integer
-    
-    def initialize(h)
-      project_id = h[:project_id]
-      super(h)
+
+    # Hash representation of this time entry's data (for updating)
+    def to_hash
+      {
+        'date'           => date,
+        'description'    => description,
+        'hours'          => hours,
+        'person-id'      => person_id,
+        "ticket-id"      => ticket_id
+      }
     end
-    
+
     # Return a list of all tickets for an individual project
     def self.time_invested(project_id, start_date, end_date)
       # [person, ticket, priority, component, version, severity, milestone, due_on, reporter, assignee, status, resolution]
@@ -27,9 +33,9 @@ module Unfuzzle
     end
 
     # Create a ticket in unfuddle
-    def create
+    def create(project_id, ticket_id)
       resource_path = "/projects/#{project_id}/tickets/#{ticket_id}/time_entries"
-      Request.post(resource_path, self.to_xml('ticket'))
+      Request.post(resource_path, self.to_xml('time-entry'))
     end
     
   end

@@ -36,6 +36,7 @@ class Unfuddle < Thor::Group
   argument :param, :default => ""
   argument :param2, :default => ""
   argument :param3, :default => ""
+  argument :param4, :default => ""
 
 
   def initialize(*args)
@@ -365,8 +366,20 @@ private
     render_ticket(t, cms)
   end
 
-  def add_time(number, hours, comment = "")
-    time = Unfuzzle::TimeEntry.new(:project_id => project_id)
+  def add_time(number, hours, comment = "", date = "")
+    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
+    
+    time = Unfuzzle::TimeEntry.new
+    time.description = comment
+    time.hours = hours
+    time.ticket_id = t.id
+    time.date = date.blank? ?  Time.now.strftime("%Y-%m-%d") : date
+    time.person_id = find_persons.first
+    
+    time.create(project_id, t.id)
+    
+    t.hours = (t.hours.to_f + time.hours.to_f).to_s
+    render_ticket(t, cms)
   end
 
 public
@@ -390,7 +403,7 @@ public
     when 't'  then times_report(false, param)
     when 'mt' then times_report(true, param)
     
-    when 'addt' then add_time(param, param2, param3)
+    when 'addt' then add_time(param, param2, param3, param4)
     when 'addcm' then add_comment(param)
     end
   end
