@@ -82,7 +82,7 @@ private
       end
       File.open(CACHED_PEOPLE, 'w'){|f| f.write(YAML.dump(@peoples))}
     end
-    
+
     @peoples
   end
 
@@ -244,27 +244,36 @@ private
     show_time_groups(t)
   end
 
+  def render_comment(cm)
+    say people[cm.author_id].to_s.mb_chars, :on_blue, false
+    say "  " + cm.created_at.to_s, nil, true
+    say cm.body.mb_chars, nil, true
+  end
 
-  def render_ticket(t)
+  def render_ticket(t, comments = [])
     color = color(t.priority)
 
     say t.number.to_s, :on_red
     say t.title.mb_chars, :on_blue
     say t.status, color
-    say t.priority_name, color
-    say people[t.reporter_id].mb_chars + " => " + people[t.assignee_id].mb_chars, color    
-    say t.description.to_s.mb_chars, color
+    say t.priority_name, color    
+    say people[t.reporter_id].to_s + " => " + people[t.assignee_id].to_s, color, true
+    say t.description.to_s.mb_chars, color, true
     say t.hours.to_s + " h.", color
     say ''
+    if !comments.blank?
+      say 'Comments: ', :on_red, true
+      comments.each{|cm| render_comment(cm) }
+    end
   end
 
   def show_ticket(num)
-    t = Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num)
+    t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, num)
 
     comments = nil
     times = nil
 
-    render_ticket(t)
+    render_ticket(t, cm)
   end
 
   def update_tickets(new_status, tickets= "")
@@ -295,7 +304,7 @@ private
 
     prio = priority.blank? ? 3 : priority.to_i
 
-    t = Unfuzzle::Ticket.new(:title => title, :assignee_id => ass_id, :priority => prio)
+    t = Unfuzzle::Ticket.new('title' => title, 'assignee-id' => ass_id.to_s, 'priority' => prio.to_s)
 
     say "Now enter description"    
     t.description = Readline::readline('> ')
@@ -304,6 +313,7 @@ private
     say t.title
     say t.description
     say t.priority
+    say people[t.assignee_id]
     say "Its Ok?"
   end
 

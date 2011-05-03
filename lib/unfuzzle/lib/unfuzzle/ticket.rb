@@ -61,6 +61,13 @@ module Unfuzzle
       new(response.body)
     end
     
+    # Return a list of all tickets for a given milestone as part of a project
+    def self.find_first_by_project_id_and_number_with_comments(project_id, number)
+      response = Request.get("/projects/#{project_id}/tickets/by_number/#{number}", "?comments=true")
+      [new(response.body), Comment.collection_from(response.body, 'comments/comment')]
+    end
+
+    
     def self.find_all_by_project_and_report(project_id, report_id)
       response = Request.get("/projects/#{project_id}/ticket_reports/#{report_id}/generate")
       collection_from(response.body, 'tickets/ticket')
