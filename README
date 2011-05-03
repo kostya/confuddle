@@ -23,3 +23,8 @@
 # un new "title of ticket" меньш - создать тикет человеку по регекспу, дальше будет предложено, ввести текст, по окончить который надо Ctrl+Z, или Ctrl+D 
 #                             - по Crtl+C отмена 
 # un addcm 3425 - add comment 
+
+
+Used gems:
+  unfuzzle by Patrick Reagan of Viget Labs
+  grapt by Patrick Reagan
