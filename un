@@ -68,6 +68,7 @@ private
     end
   end
 
+  # cached people
   def people
     return @peoples if @peoples
 
@@ -84,6 +85,10 @@ private
     end
 
     @peoples
+  end
+  
+  # cached tickets ticket_id -> num
+  def tickets
   end
 
   def show_projects
@@ -152,7 +157,11 @@ private
   
   def show_tickets_groups(ass_ids = nil)
     t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, ALL_ACTIVE_TICKETS)
-
+    t.reject!{|ticket| ass_ids && !ass_ids.include?(ticket.assignee_id) }
+    render_ticket_groups(t)
+  end
+  
+  def render_ticket_groups(t)
     groups = {}
     t.each do |ticket|
       groups[ticket.assignee_id] ||= []
@@ -160,7 +169,6 @@ private
     end
 
     groups.each do |ass_id, tickets|
-      next if ass_ids && !ass_ids.include?(ass_id)
       say "============== #{people[ass_id].to_s.mb_chars} ================", :on_red, true
       show_tickets tickets
       say ''
@@ -169,7 +177,7 @@ private
 
   def show_my_tickets
     t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, MY_ACTIVE_TICKETS)
-    show_tickets t
+    render_ticket_groups t
   end
   
   def show_time_groups(times)
@@ -276,17 +284,48 @@ private
     render_ticket(t, cm)
   end
 
-  def update_tickets(new_status, tickets= "")
+  def update_tickets(tickets, new_status)
     tickets = tickets.split(",").map &:strip
     if !tickets.blank? && !new_status.blank?
       ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
-      puts "Update tickets #{ts.map(&:id) * ','} to status #{new_status}"
+      puts "Update tickets #{ts.map(&:number) * ','} to status #{new_status}"
 
       ts.each do |t|
         t.status = new_status
         t.update
         render_ticket(t)
       end
+    else
+      puts "no one tickets"
+    end
+  end
+  
+  def update_tickets_assignee(tickets, new_assignee)
+    tickets = tickets.split(",").map &:strip
+    if !tickets.blank?
+      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
+ 
+      # find person
+      new_assignee = MY_REGEXP if new_assignee.blank?
+      res = people.detect{|id, login| login.mb_chars.downcase =~ /#{new_assignee.mb_chars.strip.downcase}/i}
+      ass_id = nil
+      if !res.empty?
+        ass_id = res.first
+      else
+        puts "no peoples matched #{name}"
+        exit 1
+      end
+
+      person = people[ass_id]
+
+      puts "Update tickets #{ts.map(&:number) * ','} to assignee #{person}"
+
+      ts.each do |t|
+        t.assignee_id = ass_id
+        t.update
+        render_ticket(t)
+      end
+
     else
       puts "no one tickets"
     end
@@ -320,7 +359,8 @@ private
   def add_comment(num)
   end
 
-  def add_time(num, hours, comment = "")
+  def add_time(number, hours, comment = "")
+    time = Unfuzzle::TimeEntry.new(:project_id => project_id)
   end
 
 public
@@ -337,6 +377,7 @@ public
     # ticket
     when 'show' then show_ticket(param)
     when 'upd' then update_tickets(param, param2)
+    when 'assi' then update_tickets_assignee(param, param2)
     when 'new' then new_ticket(param, param2, param3)
     
     #times

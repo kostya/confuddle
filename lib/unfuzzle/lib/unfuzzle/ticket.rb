@@ -112,14 +112,15 @@ module Unfuzzle
     def to_hash
       {
         'id'           => id,
-        'project_id'   => project_id,
-        'milestone_id' => milestone_id,
+        'project-id'   => project_id,
+        'milestone-id' => milestone_id,
         'priority'     => priority,
-        'severity_id'  => severity_id,
+        'severity-id'  => severity_id,
         'number'       => number,
         'summary'      => title,
         'description'  => description,
-        'status'       => status
+        'status'       => status,
+        'assignee-id'  => assignee_id
       }
     end
     
