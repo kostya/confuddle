@@ -1,7 +1,7 @@
 #!/usr/local/bin/ruby
 
 # Console Unfuddle
-# copyright Makarchev K. 2011
+# by Makarchev K. 2011
 
 HOME_DIR = "/home/kostya"
 DEFAULT_PROJECT_ID = 20674 # lf
