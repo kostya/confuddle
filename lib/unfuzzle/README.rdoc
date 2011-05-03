@@ -1,0 +1,129 @@
+= Unfuzzle
+
+== Description
+
+The Unfuzzle gem provides an interface to the Unfuddle XML API
+
+== Installation
+
+    sudo gem install vigetlabs-unfuzzle --source=http://gems.github.com
+
+== Usage
+
+To get started, you'll need your Unfuddle subdomain and a valid username / 
+password combination:
+
+    require 'unfuzzle'
+    
+    Unfuzzle.subdomain = 'viget'
+    Unfuzzle.username  = 'bopbip'
+    Unfuzzle.password  = 'bleep'
+    
+Once that is configured, you can start accessing data from the API.
+
+=== Projects
+
+Pulling back a list of projects is simple.  Based on the currently logged-in
+user, you can see which ones he has access to:
+
+    projects = Unfuzzle.projects # => [#<Unfuzzle::Project:0x11e9280 ...> , ...]
+    
+If you don't want all projects, you can find one by its slug (or short name):
+
+    Unfuzzle.project('salty') # => #<Unfuzzle::Project:0x11e9280 ...>
+    
+Or by ID:
+
+    Unfuzzle.project(1) # => #<Unfuzzle::Project:0x11e9280 ...>
+
+There are a few attributes available for a project:
+
+    project = Unfuzzle.projects.first
+    project.id                              # => 123
+    project.slug                            # => "salty"
+    project.name                            # => "Salty Co."
+    project.archived?                       # => false
+    project.created_at.strftime('%Y-%m-%d') # => "2008-07-28"
+    
+To see a list of additional attributes, take a look at the documentation for
+Project.
+
+=== Milestones
+
+Each project can have milestones.  You can access these from a single project:
+
+    project.milestones # => [#<Unfuzzle::Milestone:0x10bdca8 ...>, ...]
+
+Milestones have attributes:
+
+    milestone = project.milestones.first
+    milestone.id                          # => 1
+    milestone.name                        # => "Milestone #1"
+    milestone.due_on.strftime('%m/%d/%Y') # => "07/30/2008"
+
+A full list is available in the Milestone documentation.
+
+=== Tickets
+
+Tickets exist for a project:
+
+    ticket = project.tickets.first
+    ticket.title        # => "Ticket #23"
+    ticket.number       # => 23
+    ticket.description  # => "Yo dawg, I hear you like tickets in your project ..."
+    ticket.status       # => "closed"
+
+And can also be associated to a milestone for the project:
+
+    ticket = project.milestones.first.tickets.first
+    ticket.title        # => "Ticket #1"
+    ticket.number       # => 1
+    ticket.description  # => "Wash my car"
+    ticket.status       # => "closed"
+
+Unfuddle has additional associations for a ticket, including component, severity,
+and priority:
+
+    ticket.component      # => #<Unfuzzle::Component:0x12c5b54 ...>
+    ticket.component_name # => "User Accounts"
+    ticket.severity       # => #<Unfuzzle::Severity:0x12a357c ...>
+    ticket.severity_name  # => "Development"
+    ticket.priority       # => #<Unfuzzle::Priority:0x12811fc @id=3>
+    ticket.priority_name  # => "Normal"
+
+See the Ticket documentation for more information.
+
+== Updating
+
+Currently, only ticket updating is supported and only for a subset of the data:
+
+    ticket.title = 'This is a new title' # => "This is a new title"
+    ticket.update                        # => #<Unfuzzle::Response:0x1275280 ...>
+
+This will update the title of the ticket.  Other fields that can be updated include
+description and status. 
+
+== License
+
+Copyright (c) 2009 Patrick Reagan of Viget Labs (mailto:patrick.reagan@viget.com)
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.

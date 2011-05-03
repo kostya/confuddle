@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component>
+  <id type="integer">1</id>
+  <name>Administration</name>
+  <project-id type="integer">2</project-id>
+  <created-at>2009-06-15T20:40:29Z</created-at>
+  <updated-at>2009-06-15T20:40:29Z</updated-at>
+</component>

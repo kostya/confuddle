@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <account-id type="integer">1</account-id>
+  <archived type="boolean">false</archived>
+  <assignee-on-resolve>none</assignee-on-resolve>
+  <close-ticket-simultaneously-default type="boolean">true</close-ticket-simultaneously-default>
+  <default-ticket-report-id type="integer">0</default-ticket-report-id>
+  <description>This is the project for Blip Bleep Co.</description>
+  <disk-usage type="integer">1416</disk-usage>
+  <enable-time-tracking type="boolean">true</enable-time-tracking>
+  <id type="integer">1</id>
+  <short-name>blip</short-name>
+  <theme>teal</theme>
+  <title>Blip Bleep Co.</title>
+  <created-at>2008-07-28T16:57:10Z</created-at>
+  <updated-at>2009-04-28T18:48:52Z</updated-at>
+</project>

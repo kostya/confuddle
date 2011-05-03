@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<severities type="array">
+  <severity>
+    <id type="integer">34942</id>
+    <name>Design</name>
+    <project-id type="integer">26984</project-id>
+    <created-at>2009-04-02T19:44:49Z</created-at>
+    <updated-at>2009-04-02T19:44:49Z</updated-at>
+  </severity>
+  <severity>
+    <id type="integer">34943</id>
+    <name>Development</name>
+    <project-id type="integer">26984</project-id>
+    <created-at>2009-04-02T19:44:53Z</created-at>
+    <updated-at>2009-04-02T19:44:53Z</updated-at>
+  </severity>
+  <severity>
+    <id type="integer">34944</id>
+    <name>Project Management</name>
+    <project-id type="integer">26984</project-id>
+    <created-at>2009-04-02T19:44:59Z</created-at>
+    <updated-at>2009-04-02T19:44:59Z</updated-at>
+  </severity>
+</severities>

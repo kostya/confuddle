@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<milestones type="array">
+  <milestone>
+    <archived type="boolean">false</archived>
+    <completed type="boolean">false</completed>
+    <due-on type="date">2009-04-03</due-on>
+    <id type="integer">1</id>
+    <person-responsible-id type="integer">123</person-responsible-id>
+    <project-id type="integer">1</project-id>
+    <title>Milestone #1</title>
+    <created-at>2009-04-02T19:43:16Z</created-at>
+    <updated-at>2009-07-06T18:00:26Z</updated-at>
+  </milestone>
+  <milestone>
+    <archived type="boolean">false</archived>
+    <completed type="boolean">false</completed>
+    <due-on type="date">2009-04-06</due-on>
+    <id type="integer">2</id>
+    <person-responsible-id type="integer">123</person-responsible-id>
+    <project-id type="integer">1</project-id>
+    <title>Milestone #2</title>
+    <created-at>2009-04-06T04:45:54Z</created-at>
+    <updated-at>2009-04-10T15:29:01Z</updated-at>
+  </milestone>
+</milestones>

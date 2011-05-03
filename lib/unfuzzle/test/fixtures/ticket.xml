@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ticket>
+  <assignee-id type="integer">123</assignee-id>
+  <component-id type="integer">1</component-id>
+  <description>Do something important</description>
+  <description-format>markdown</description-format>
+  <due-on type="date"></due-on>
+  <hours-estimate-current type="float">0.0</hours-estimate-current>
+  <hours-estimate-initial type="float">2.0</hours-estimate-initial>
+  <id type="integer">1</id>
+  <milestone-id type="integer">1</milestone-id>
+  <number type="integer">1</number>
+  <priority>3</priority>
+  <project-id type="integer">1</project-id>
+  <reporter-id type="integer">122</reporter-id>
+  <resolution>postponed</resolution>
+  <resolution-description>done</resolution-description>
+  <resolution-description-format>markdown</resolution-description-format>
+  <severity-id type="integer">123</severity-id>
+  <status>closed</status>
+  <summary>Ticket #1</summary>
+  <version-id type="integer">17329</version-id>
+  <created-at>2008-11-25T14:00:19Z</created-at>
+  <updated-at>2008-12-31T15:51:41Z</updated-at>
+</ticket>

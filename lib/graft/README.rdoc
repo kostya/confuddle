@@ -1,0 +1,138 @@
+= Graft
+
+== Description
+
+Graft provides an easy way to map XML and JSON data onto your Ruby classes.
+
+== Installation
+
+Stable:
+
+    $ sudo gem install graft
+    
+Bleeding edge:
+
+    $ git clone git://github.com/reagent/graft.git
+    $ cd graft && rake gem
+    $ sudo gem install pkg/graft-<version>.gem
+
+== Usage
+
+When interacting with APIs, it's quite often the case that the data returned as
+part of the response is represented either as XML or JSON.  The Graft library makes
+turning that data into Ruby objects pretty simple.  This code was an extraction from
+my work on both the Fleakr[http://reagent.github.com/fleakr] and 
+Etsy[http://github.com/reagent/etsy] gems.
+
+=== Mapping XML
+
+If you want to use Graft in XML mode, you'll need to include the right library:
+
+    require 'rubygems'
+    require 'graft/xml'
+
+Once that is set up, you can take an XML string like this:
+
+    <rsp>
+      <user nsid="3">reagent</user>
+      <name>Patrick Reagan</name>
+    </rsp>
+
+And map it onto a Ruby class:
+
+    class User
+      include Graft
+
+      attribute :name  
+      attribute :username, :from => 'user'
+      attribute :id, :from => 'user@nsid', :type => :integer
+    end
+    
+There are a couple of ways to pull this data into the +User+ object.  The simplest
+is from the constructor:
+
+    user = User.new(xml)
+    
+There is also a +populate_from+ instance method that will do the same:
+
+    user = User.new
+    user.populate_from(xml)
+    
+This second method is useful if the data you want in your Ruby object comes from 2
+separate XML files.  Accessing it is simple:
+
+    >> user.name      # => "Patrick Reagan"
+    >> user.username  # => "reagent"
+    >> user.id        # => 3
+
+=== Mapping JSON
+
+The process of mapping JSON is similar to XML, except:
+
+* You don't need to declare the type of the attribute
+* You need to provide a full path to the JSON value
+
+To get started, include the correct library:
+
+    require 'rubygems'
+    require 'graft/json'
+    
+Then for simple JSON data:
+
+    {
+        "rsp": {
+            "user_id": 3,
+            "username": "reagent",
+            "name": "Patrick Reagan"
+        }
+    }
+
+You can map it in a similar way:
+
+    class User
+      include Graft
+  
+      attribute :name, :from => 'rsp/name'
+      attribute :username, :from => 'rsp/username'
+      attribute :id, :from => 'rsp/user_id'
+    end
+
+Again, you can initialize the values from both the constructor:
+
+    user = User.new(json)
+    
+Or the +populate_from+ method:
+
+    user = User.new
+    user.populate_from(json)
+    
+The results are the same:
+
+    >> user.name      # => "Patrick Reagan"
+    >> user.username  # => "reagent"
+    >> user.id        # => 3
+
+== License
+
+Copyright (c) 2009 Patrick Reagan (reaganpr@gmail.com)
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.

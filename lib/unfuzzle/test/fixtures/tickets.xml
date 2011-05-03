@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tickets type="array">
+  <ticket>
+    <assignee-id type="integer">27736</assignee-id>
+    <component-id type="integer">47394</component-id>
+    <description></description>
+    <description-format>markdown</description-format>
+    <due-on type="date">2009-04-03</due-on>
+    <hours-estimate-current type="float">0.0</hours-estimate-current>
+    <hours-estimate-initial type="float">2.0</hours-estimate-initial>
+    <id type="integer">557168</id>
+    <milestone-id type="integer">52212</milestone-id>
+    <number type="integer">5</number>
+    <priority>3</priority>
+    <project-id type="integer">26984</project-id>
+    <reporter-id type="integer">27736</reporter-id>
+    <resolution>postponed</resolution>
+    <resolution-description>awaiting contracts</resolution-description>
+    <resolution-description-format>markdown</resolution-description-format>
+    <severity-id type="integer">34943</severity-id>
+    <status>closed</status>
+    <summary>User can log in to the site</summary>
+    <version-id type="integer">17329</version-id>
+    <created-at>2009-04-02T19:16:26Z</created-at>
+    <updated-at>2009-07-02T16:42:30Z</updated-at>
+  </ticket>
+  <ticket>
+    <assignee-id type="integer">27736</assignee-id>
+    <component-id type="integer">47394</component-id>
+    <description></description>
+    <description-format>markdown</description-format>
+    <due-on type="date">2009-04-03</due-on>
+    <hours-estimate-current type="float">0.0</hours-estimate-current>
+    <hours-estimate-initial type="float">2.0</hours-estimate-initial>
+    <id type="integer">557169</id>
+    <milestone-id type="integer">52212</milestone-id>
+    <number type="integer">6</number>
+    <priority>3</priority>
+    <project-id type="integer">26984</project-id>
+    <reporter-id type="integer">27736</reporter-id>
+    <resolution>postponed</resolution>
+    <resolution-description>awaiting contracts</resolution-description>
+    <resolution-description-format>markdown</resolution-description-format>
+    <severity-id type="integer">34943</severity-id>
+    <status>closed</status>
+    <summary>User can edit profile</summary>
+    <version-id type="integer">17329</version-id>
+    <created-at>2009-04-02T19:17:40Z</created-at>
+    <updated-at>2009-04-10T15:28:54Z</updated-at>
+  </ticket>
+</tickets>

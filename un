@@ -1,0 +1,367 @@
+#!/usr/local/bin/ruby
+
+# Консольный анфадл, копирайт Макарчев К.
+
+# Для установки создайте файлик  HOME_DIR/.passwd_to_unfuddle
+# и пропишите туда
+# subdomain
+# login
+# password
+# и также проставьте свои константы, которые ниже
+
+
+# un projects - список проектов
+# un reports - списко отчетов чтобы проставить константы
+
+# un my - показать мои тикеты
+# un all - показать все тикеты в проекте
+# un all меньш - показать все тикеты для человека совпадающего с регекспом
+# un show 3425 - показать тикет
+
+# un t X - время введенное за X дней (по умолчанию за сегодня)
+# un mt X - время введенной мной за X дней (по умолчанию за сегодня)
+
+# un addt 3425 2.5 "Сделал тикет" - ввести время
+# un upd resolved 3425,1234 - обновить тикетам статусы
+# un new "title of ticket" меньш - создать тикет человеку по регекспу, дальше будет предложено, ввести текст, по окончить который надо Ctrl+Z, или Ctrl+D
+#                             - по Crtl+C отмена
+# un addcm 3425 - add comment
+
+HOME_DIR = "/home/kostya"
+DEFAULT_PROJECT_ID = 20674 # lf
+ALL_ACTIVE_TICKETS = 186076 # all active tickets report
+MY_ACTIVE_TICKETS = 215715 # all my tickets report
+MY_REGEXP = "макарчев"
+
+$KCODE='u'
+require 'rubygems'
+require 'yaml'
+
+class Object
+  def blank?
+    !self || self.empty?
+  end
+end
+
+require File.dirname(__FILE__) + '/lib/unfuzzle/lib/unfuzzle'
+require 'thor/group'
+require 'readline'
+
+class Unfuddle < Thor::Group
+
+  PASS_FILE = "#{HOME_DIR}/.passwd_to_unfuddle"
+  CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
+  #CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
+  DAY = 60 * 60 * 24
+  CACHED_PERIOD = 1 * DAY # 1 day
+  #CACHED_TICKETS_PERIOD = 60 # 1 minute
+
+  argument :act, :default => "my"
+  argument :param, :default => ""
+  argument :param2, :default => ""
+  argument :param3, :default => ""
+
+
+  def initialize(*args)
+    unless File.exists?(PASS_FILE)
+      puts "you should create #{PASS_FILE} file"
+      exit 1
+    end
+
+    pass = File.open(PASS_FILE){|f| f.read}.split
+    Unfuzzle.subdomain = pass.at(0)
+    Unfuzzle.username  = pass.at(1)
+    Unfuzzle.password  = pass.at(2)
+    Unfuzzle.use_ssl   = true
+
+    super
+  end
+
+private
+  def project_id    
+    DEFAULT_PROJECT_ID  
+  end
+
+  def color(prio)
+    case prio
+      when 1; :blue
+      when 2; :cyan
+      when 3; nil
+      when 4; :red
+      when 5; :on_red
+    end
+  end
+
+  def people
+    return @peoples if @peoples
+
+    # cached peoples
+    if File.exists?(CACHED_PEOPLE) && File.ctime(CACHED_PEOPLE) > (Time.now - CACHED_PERIOD)
+      @peoples = YAML.load_file(CACHED_PEOPLE)
+    else
+      people = Unfuzzle::Person.all_for_project(project_id)
+      @peoples = {}
+      people.each do |person|
+        @peoples[person.id] = person.last_name + " " + person.first_name.mb_chars[0] + "."
+      end
+      File.open(CACHED_PEOPLE, 'w'){|f| f.write(YAML.dump(@peoples))}
+    end
+    
+    @peoples
+  end
+
+  def show_projects
+    projects = Unfuzzle.projects
+
+    say "    ", nil, false
+    say "id".ljust(10), nil, false
+    say "name".ljust(20), nil, false
+    say 'title'.ljust(20), nil, false
+    say "disk-usage"
+
+    projects.each do |project|
+      say "    ", nil, false
+      say project.id.to_s.ljust(10), :yellow, false
+      say project.slug.ljust(20), :green, false
+      say project.name.ljust(20), nil, false
+      say project.disk_usage
+    end
+  end
+
+  def show_reports
+    rep = Unfuzzle::TicketReport.all
+    rep.each do |report|
+      say report.id.to_s.ljust(10), :yellow, false
+      say report.title
+    end
+  end
+  
+  def show_tickets(tickets)
+    groups = {}
+    tickets.each do |ticket|
+      groups[ticket.status] ||= []
+      groups[ticket.status] << ticket
+    end
+    
+    groups.each do |group, tickets|
+      tickets.each do |ticket|
+        color = color(ticket.priority)
+    
+        say ticket.number.to_s.ljust(6), :yellow, false
+        say ticket.title.mb_chars[0..67].ljust(72), color, false
+        say ticket.status.ljust(14), color, false
+        say people[ticket.reporter_id].to_s.mb_chars.ljust(15), color, false
+        say people[ticket.assignee_id].to_s.mb_chars.ljust(15), color, false
+        say ticket.hours.to_s, color, true
+      end
+      
+      say ''
+    end
+  end
+
+  def show_all_active_tickets(name = nil)
+    if !name.blank?
+      res = people.select{|id, login| login.mb_chars.downcase =~ /#{name.mb_chars.strip.downcase}/i}
+      if !res.empty?
+        ass_ids = res.map &:first
+        show_tickets_groups ass_ids
+      else
+        puts "no peoples matched #{name}"
+      end
+         
+    else
+      show_tickets_groups
+    end  
+  end  
+  
+  def show_tickets_groups(ass_ids = nil)
+    t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, ALL_ACTIVE_TICKETS)
+
+    groups = {}
+    t.each do |ticket|
+      groups[ticket.assignee_id] ||= []
+      groups[ticket.assignee_id] << ticket
+    end
+
+    groups.each do |ass_id, tickets|
+      next if ass_ids && !ass_ids.include?(ass_id)
+      say "============== #{people[ass_id].to_s.mb_chars} ================", :on_red, true
+      show_tickets tickets
+      say ''
+    end
+  end
+
+  def show_my_tickets
+    t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, MY_ACTIVE_TICKETS)
+    show_tickets t
+  end
+  
+  def show_time_groups(times)
+    groups = {}
+    times.each do |time|
+      groups[time.person_id] ||= []
+      groups[time.person_id] << time
+    end
+    
+    groups.each do |group, times|
+      say "============== #{people[group].to_s.mb_chars} ================", :on_red, true
+      show_date_times(times)
+      say ''
+    end
+  end
+  
+  def show_date_times(times)
+    groups = {}
+    times.each do |time|
+      groups[time.date] ||= []
+      groups[time.date] << time
+    end
+
+    sum = 0    
+    groups.each do |group, times|
+      say "#{group.to_s}", :on_blue, true
+      sm = show_times(times)
+      say ''
+      
+      sum += sm
+    end
+    say ''.ljust(8), nil, false
+    say ''.ljust(72), nil, false
+    say (sum.to_s + " h.").ljust(10), :on_blue, true
+    
+    
+  end
+
+  def show_times(times)
+    sum = 0
+    times.each do |time|
+      say time.ticket_id.to_s.ljust(8), :yellow, false
+      say time.description.mb_chars[0..67].ljust(72), nil, false
+      say (time.hours.to_s + " h.").ljust(10), nil, false
+      say people[time.person_id].to_s.mb_chars.ljust(15), nil, false
+      say time.date, nil
+      
+      sum += time.hours.to_f      
+    end
+    
+    say ''.ljust(8), nil, false
+    say ''.ljust(72), nil, false
+    say (sum.to_s + " h.").ljust(10), :red, true
+    
+    sum
+  end
+  
+  def filter_times(times, for_people = nil)
+    res = times.select do |time|
+      people[time.person_id].mb_chars.downcase.include?(for_people.mb_chars.strip.downcase)
+    end
+    
+    res.sort_by{|t| t.date.to_s }
+  end
+
+  def times_report(me = false, period = 0)
+    period = 0 if period.blank?
+    period = period.to_i
+    
+    t = Unfuzzle::TimeEntry.time_invested(project_id, Time.now - period * DAY, Time.now)
+    t = filter_times(t, MY_REGEXP) if me
+    show_time_groups(t)
+  end
+
+
+  def render_ticket(t)
+    color = color(t.priority)
+
+    say t.number.to_s, :on_red
+    say t.title.mb_chars, :on_blue
+    say t.status, color
+    say t.priority_name, color
+    say people[t.reporter_id].mb_chars + " => " + people[t.assignee_id].mb_chars, color    
+    say t.description.to_s.mb_chars, color
+    say t.hours.to_s + " h.", color
+    say ''
+  end
+
+  def show_ticket(num)
+    t = Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num)
+
+    comments = nil
+    times = nil
+
+    render_ticket(t)
+  end
+
+  def update_tickets(new_status, tickets= "")
+    tickets = tickets.split(",").map &:strip
+    if !tickets.blank? && !new_status.blank?
+      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
+      puts "Update tickets #{ts.map(&:id) * ','} to status #{new_status}"
+
+      ts.each do |t|
+        t.status = new_status
+        t.update
+        render_ticket(t)
+      end
+    else
+      puts "no one tickets"
+    end
+  end
+  
+  def new_ticket(title, to = nil, priority = nil)
+    # find user
+    to = MY_REGEXP if to.blank?
+    res = people.detect{|id, login| login.mb_chars.downcase =~ /#{to.mb_chars.strip.downcase}/i}
+    if res.blank?
+      "no users matched #{to}"
+    end
+
+    ass_id = res.first
+
+    prio = priority.blank? ? 3 : priority.to_i
+
+    t = Unfuzzle::Ticket.new(:title => title, :assignee_id => ass_id, :priority => prio)
+
+    say "Now enter description"    
+    t.description = Readline::readline('> ')
+
+    say "We gone create ticket: "
+    say t.title
+    say t.description
+    say t.priority
+    say "Its Ok?"
+  end
+
+  def add_comment(num)
+  end
+
+  def add_time(num, hours, comment = "")
+  end
+
+public
+
+  def do_action
+    case act
+    when 'projects' then show_projects
+    when 'reports' then show_reports
+    
+    # group tickets
+    when 'all' then show_all_active_tickets(param)
+    when 'my' then show_my_tickets
+    
+    # ticket
+    when 'show' then show_ticket(param)
+    when 'upd' then update_tickets(param, param2)
+    when 'new' then new_ticket(param, param2, param3)
+    
+    #times
+    when 't'  then times_report(false, param)
+    when 'mt' then times_report(true, param)
+    
+    when 'addt' then add_time(param, param2, param3)
+    when 'addcm' then add_comment(param)
+    end
+  end
+
+end
+
+Unfuddle.start
