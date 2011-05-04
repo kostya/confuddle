@@ -267,7 +267,7 @@ private
     color = color(t.priority)
 
     say t.number.to_s, :on_red
-    say t.title.mb_chars, :on_blue
+    say t.title.to_s.mb_chars, :on_blue
     say t.status, color
     say t.priority_name, color    
     say people[t.reporter_id].to_s + " => " + people[t.assignee_id].to_s, color, true
