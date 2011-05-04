@@ -329,24 +329,33 @@ private
     end
   end
   
-  def new_ticket(title, to = nil, priority = nil)
+  def new_ticket(title, assignee = nil, priority = nil)
     # find user
-    ass_ids = find_persons(to)
-    ass_id = res.first
+    ass_ids = find_persons(assignee)
+    ass_id = ass_ids.first
 
     prio = priority.blank? ? 3 : priority.to_i
 
-    t = Unfuzzle::Ticket.new('title' => title, 'assignee-id' => ass_id.to_s, 'priority' => prio.to_s)
+    t = Unfuzzle::Ticket.new
+    t.title = title
+    t.assignee_id = ass_id
+    t.reporter_id = find_persons.first # me
+    t.priority = prio
+    t.project_id = project_id
 
     say "Now enter description"    
     t.description = Readline::readline('> ')
 
-    say "We gone create ticket: "
-    say t.title
-    say t.description
-    say t.priority
+    say "Create ticket: ", nil, true
+    say t.title, nil, true
+    say t.description, nil, true
     say people[t.assignee_id]
-    say "Its Ok?"
+    say ''
+
+    t.create
+    #t = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
+    
+    render_ticket(t)
   end
 
   def add_comment(number)

@@ -120,7 +120,8 @@ module Unfuzzle
         'summary'      => title,
         'description'  => description,
         'status'       => status,
-        'assignee-id'  => assignee_id
+        'assignee-id'  => assignee_id,
+        'reporter-id'  => reporter_id
       }
     end
     
