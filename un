@@ -1,9 +1,9 @@
-#!/usr/local/bin/ruby
+#!/usr/bin/env ruby
 
 # Console Unfuddle
 # by Makarchev K. 2011
 
-HOME_DIR = "/home/kostya"
+HOME_DIR = ENV["HOME"]
 DEFAULT_PROJECT_ID = 20674 # lf
 ALL_ACTIVE_TICKETS = 186076 # all active tickets report
 MY_ACTIVE_TICKETS = 215715 # all my tickets report
