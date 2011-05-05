@@ -9,6 +9,11 @@ ALL_ACTIVE_TICKETS = 186076 # all active tickets report
 MY_ACTIVE_TICKETS = 215715 # all my tickets report
 MY_REGEXP = "макарчев"
 
+UNFUDDLE_ENC = "utf-8"
+WIN_ENC = "cp866"
+CM_WIN_ENC = "windows-1251"
+
+
 $KCODE='u'
 require 'rubygems'
 require 'yaml'
@@ -38,6 +43,13 @@ class Unfuddle < Thor::Group
   argument :param3, :default => ""
   argument :param4, :default => ""
 
+  if RUBY_PLATFORM['mingw']
+    require 'iconv'
+    def say(*args)
+      args[0] = Iconv.new(WIN_ENC, UNFUDDLE_ENC).iconv(args.at(0).to_s) rescue args.at(0).to_s
+      super
+    end
+  end
 
   def initialize(*args)
     unless File.exists?(PASS_FILE)
@@ -54,7 +66,27 @@ class Unfuddle < Thor::Group
     super
   end
 
+
 private
+
+  def enc_input(text)
+    if RUBY_PLATFORM['mingw']
+      require 'iconv'
+      Iconv.new(UNFUDDLE_ENC, WIN_ENC).iconv(text.to_s)
+    else
+      text
+    end    
+  end
+
+  def enc_cmd(text)
+    if RUBY_PLATFORM['mingw']
+      require 'iconv'
+      Iconv.new(UNFUDDLE_ENC, CM_WIN_ENC).iconv(text.to_s)
+    else
+      text
+    end    
+  end
+
   def project_id    
     DEFAULT_PROJECT_ID  
   end
@@ -96,6 +128,8 @@ private
   def find_persons(regx = "")
     return nil if regx.nil?
     regx = MY_REGEXP if regx == ""
+
+    regx = enc_cmd(regx)
     
     res = people.select{|id, login| login.mb_chars.downcase =~ /#{regx.mb_chars.strip.downcase}/i}
     if !res.empty?
@@ -337,14 +371,14 @@ private
     prio = priority.blank? ? 3 : priority.to_i
 
     t = Unfuzzle::Ticket.new
-    t.title = title
+    t.title = enc_cmd(title)
     t.assignee_id = ass_id
     t.reporter_id = find_persons.first # me
     t.priority = prio
     t.project_id = project_id
 
     say "Now enter description"    
-    t.description = Readline::readline('> ')
+    t.description = enc_input(Readline::readline('> '))
 
     say "Create ticket: ", nil, true
     say t.title, nil, true
@@ -362,7 +396,7 @@ private
     t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
     
     say "Enter body of comment: ", :red, true
-    text = Readline::readline('> ')
+    text = enc_input(Readline::readline('> '))
     
     cm = Unfuzzle::Comment.new
     cm.body = text
@@ -379,7 +413,7 @@ private
     t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
     
     time = Unfuzzle::TimeEntry.new
-    time.description = comment
+    time.description = enc_cmd(comment)
     time.hours = hours
     time.ticket_id = t.id
     time.date = date.blank? ?  Time.now.strftime("%Y-%m-%d") : date
