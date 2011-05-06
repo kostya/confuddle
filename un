@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby     
 
 # Console Unfuddle
 # by Makarchev K. 2011
@@ -133,6 +133,11 @@ private
   def me  
     @me ||= people[me_id]
   end
+
+
+  def cached_tickets
+    
+  end
  
   # === Methods ===
 
@@ -235,7 +240,7 @@ private
 
   # TimeEntry
 
-  def render_date_times(times)
+  def render_times(times)
     sum = 0
     times.each do |time|
       say time.ticket_id.to_s.ljust(8), :yellow, false
@@ -263,7 +268,7 @@ private
     
     groups.each do |group, times|
       say "============== #{people[group].to_s.mb_chars} ================", :on_red, true
-      render_date_times(times)
+      render_times(times)
       say ''
     end
   end
@@ -396,7 +401,7 @@ private
     cm.body = text
     cm.author_id = me_id
     
-    cm.create(project_id, t.id)
+    cm.create(t.project_id, t.id)
     
     cms += [cm]
     
@@ -413,7 +418,7 @@ private
     time.date = date.blank? ?  Time.now.strftime("%Y-%m-%d") : date
     time.person_id = me_id
     
-    time.create(project_id, t.id)
+    time.create(t.project_id, t.id)
     
     t.hours = (t.hours.to_f + time.hours.to_f).to_s
     render_ticket(t, cms)
