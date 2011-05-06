@@ -10,7 +10,7 @@ MY_ACTIVE_TICKETS = 215715 # all my tickets report
 
 UNFUDDLE_ENC = "utf-8"
 WIN_ENC = "cp866"
-CM_WIN_ENC = "windows-1251"
+CMD_WIN_ENC = "windows-1251"
 
 $KCODE='u'
 require 'rubygems'
@@ -32,7 +32,7 @@ class Unfuddle < Thor::Group
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
   #CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
   DAY = 60 * 60 * 24
-  CACHED_PERIOD = 1 * DAY # 1 day
+  CACHED_PERIOD = 3 * DAY
   #CACHED_TICKETS_PERIOD = 60 # 1 minute
 
   argument :act, :default => "my"
@@ -51,7 +51,7 @@ class Unfuddle < Thor::Group
 
   def initialize(*args)
     unless File.exists?(PASS_FILE)
-      puts "you should create #{PASS_FILE} file"
+      say "you should create #{PASS_FILE} file", :red, true
       exit 1
     end
 
@@ -79,7 +79,7 @@ private
   def enc_cmd(text)
     if RUBY_PLATFORM['mingw']
       require 'iconv'
-      Iconv.new(UNFUDDLE_ENC, CM_WIN_ENC).iconv(text.to_s)
+      Iconv.new(UNFUDDLE_ENC, CMD_WIN_ENC).iconv(text.to_s)
     else
       text
     end    
@@ -99,50 +99,62 @@ private
     end
   end
 
-  # cached people
+  # people {id => name}
   def people
-    return @peoples if @peoples
+    @people ||= {}.tap do |h|
+      cached_people.each{|id, data| h[id] = data[:name] }
+    end
+  end
+
+  # cached people
+  def cached_people
+    return @cached_people if @cached_people
 
     # cached peoples
     if File.exists?(CACHED_PEOPLE) && File.ctime(CACHED_PEOPLE) > (Time.now - CACHED_PERIOD)
-      @peoples = YAML.load_file(CACHED_PEOPLE)
+      @cached_people = YAML.load_file(CACHED_PEOPLE)
     else
-      people = Unfuzzle::Person.all_for_project(project_id)
-      @peoples = {}
+      people = Unfuzzle::Person.all
+      @cached_people = {}
       people.each do |person|
-        @peoples[person.id] = person.last_name + " " + person.first_name.mb_chars[0] + "."
+        @cached_people[person.id] = {:name => person.last_name.to_s + " " + person.first_name.to_s.mb_chars[0] + ".", :login => person.username}
       end
-      File.open(CACHED_PEOPLE, 'w'){|f| f.write(YAML.dump(@peoples))}
+      File.open(CACHED_PEOPLE, 'w'){|f| f.write(YAML.dump(@cached_people))}
     end
 
-    @peoples
+    @cached_people
   end
   
   # my id
   def me_id
-    people.detect{|id, login| login == Unfuzzle.username}.at(0)
+    @me_id ||= cached_people.detect{|id, data| data[:login] == Unfuzzle.username}.at(0)
   end
 
   def me  
-    people[me_id]
+    @me ||= people[me_id]
   end
  
   # cached tickets ticket_id -> num
   def tickets
   end
-  
+
+  # === Methods ===
+
   # find persons by regexp, if blank than find me
   def find_persons(regx = "")
     return nil if regx.nil?
-    regx = me if regx == ""
 
-    regx = enc_cmd(regx)
-    
-    res = people.select{|id, login| login.mb_chars.downcase =~ /#{regx.mb_chars.strip.downcase}/i}
+    res = if regx == ""
+      people.select{|id, login| id == me_id }
+    else
+      regx = enc_cmd(regx)
+      people.select{|id, login| login.mb_chars.downcase =~ /#{regx.mb_chars.strip.downcase}/i}
+    end
+
     if !res.empty?
       res.map &:first
     else
-      puts "no peoples matched #{regx}"
+      say "no peoples matched #{regx}"
       []
     end
   end
@@ -334,7 +346,7 @@ private
     tickets = tickets.split(",").map &:strip
     if !tickets.blank? && !new_status.blank?
       ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
-      puts "Update tickets #{ts.map(&:number) * ','} to status #{new_status}"
+      say "Update tickets #{ts.map(&:number) * ','} to status #{new_status}"
 
       ts.each do |t|
         t.status = new_status
@@ -342,7 +354,7 @@ private
         render_ticket(t)
       end
     else
-      puts "no one tickets"
+      say "no one tickets"
     end
   end
   
@@ -357,7 +369,7 @@ private
 
       person = people[ass_ids.first]
 
-      puts "Update tickets #{ts.map(&:number) * ','} to assignee #{person}"
+      say "Update tickets #{ts.map(&:number) * ','} to assignee #{person}"
 
       ts.each do |t|
         t.assignee_id = ass_ids.first
@@ -366,7 +378,7 @@ private
       end
 
     else
-      puts "no one tickets"
+      say "no one tickets"
     end
   end
   
@@ -435,6 +447,11 @@ private
 public
 
   def do_action
+    unless me_id
+      say "no matches for me", :red, true
+      exit 1
+    end
+
     case act
     when 'projects' then show_projects
     when 'reports' then show_reports
