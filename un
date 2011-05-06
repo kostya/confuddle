@@ -7,12 +7,10 @@ HOME_DIR = ENV["HOME"]
 DEFAULT_PROJECT_ID = 20674 # lf
 ALL_ACTIVE_TICKETS = 186076 # all active tickets report
 MY_ACTIVE_TICKETS = 215715 # all my tickets report
-MY_REGEXP = "макарчев"
 
 UNFUDDLE_ENC = "utf-8"
 WIN_ENC = "cp866"
 CM_WIN_ENC = "windows-1251"
-
 
 $KCODE='u'
 require 'rubygems'
@@ -120,6 +118,15 @@ private
     @peoples
   end
   
+  # my id
+  def me_id
+    people.detect{|id, login| login == Unfuzzle.username}.at(0)
+  end
+
+  def me  
+    people[me_id]
+  end
+ 
   # cached tickets ticket_id -> num
   def tickets
   end
@@ -127,7 +134,7 @@ private
   # find persons by regexp, if blank than find me
   def find_persons(regx = "")
     return nil if regx.nil?
-    regx = MY_REGEXP if regx == ""
+    regx = me if regx == ""
 
     regx = enc_cmd(regx)
     
@@ -274,9 +281,9 @@ private
     sum
   end
   
-  def filter_times(times, for_people = nil)
+  def filter_times(times, for_id = nil)
     res = times.select do |time|
-      people[time.person_id].mb_chars.downcase.include?(for_people.mb_chars.strip.downcase)
+      time.person_id == for_id
     end
     
     res.sort_by{|t| t.date.to_s }
@@ -287,7 +294,7 @@ private
     period = period.to_i
     
     t = Unfuzzle::TimeEntry.time_invested(project_id, Time.now - period * DAY, Time.now)
-    t = filter_times(t, MY_REGEXP) if me
+    t = filter_times(t, me_id) if me
     show_time_groups(t)
   end
 
@@ -448,6 +455,10 @@ public
     
     when 'addt' then add_time(param, param2, param3, param4)
     when 'addcm' then add_comment(param)
+
+    else
+      say "unknown action #{act}", :red, true
+      exit 1
     end
   end
 

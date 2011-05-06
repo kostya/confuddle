@@ -57,7 +57,6 @@ module Unfuzzle
     # Return a list of all tickets for a given milestone as part of a project
     def self.find_first_by_project_id_and_number(project_id, number)
       response = Request.get("/projects/#{project_id}/tickets/by_number/#{number}")
-      # collection_from(response.body, 'tickets/ticket')
       new(response.body)
     end
     
@@ -86,13 +85,6 @@ module Unfuzzle
     def severity_name
       severity.name unless severity.nil?
     end
-    
-    # The Priority associated with this ticket
-=begin
-    def priority
-      Priority.new(priority_id)
-    end
-=end
     
     def priority_name
       # priority.name
