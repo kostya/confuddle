@@ -290,6 +290,15 @@ private
     render_people_times(t)
   end
 
+  def all_times_report(me = false, period = 0)
+    period = 0 if period.blank?
+    period = period.to_i
+    
+    t = Unfuzzle::TimeEntry.all_time_invested(Time.now - period * DAY, Time.now)
+    t = filter_times(t, me_id) if me
+    render_people_times(t)
+  end
+
   # Ticket
 
   def render_comment(cm)
@@ -447,6 +456,8 @@ public
     when 'new' then new_ticket(param, param2, param3)
     
     #times
+    when 'at'  then all_times_report(false, param)
+    when 'atm'  then all_times_report(true, param)
     when 't'  then times_report(false, param)
     when 'mt' then times_report(true, param)
     

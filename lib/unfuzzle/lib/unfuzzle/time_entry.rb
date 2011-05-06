@@ -23,12 +23,21 @@ module Unfuzzle
       }
     end
 
-    # Return a list of all tickets for an individual project
+    # times for project
     def self.time_invested(project_id, start_date, end_date)
       # [person, ticket, priority, component, version, severity, milestone, due_on, reporter, assignee, status, resolution]
       group = "ticket"
       query = "?group_by=#{group}&start_date=#{start_date.strftime("%Y/%m/%d")}&end_date=#{end_date.strftime("%Y/%m/%d")}"
       response = Request.get("/projects/#{project_id}/time_invested", query)
+      collection_from(response.body, 'time-entries/time-entry')
+    end
+
+    # times for account
+    def self.all_time_invested(start_date, end_date)
+      # [person, ticket, priority, component, version, severity, milestone, due_on, reporter, assignee, status, resolution]
+      group = "ticket"
+      query = "?group_by=#{group}&start_date=#{start_date.strftime("%Y/%m/%d")}&end_date=#{end_date.strftime("%Y/%m/%d")}"
+      response = Request.get("/account/time_invested", query)
       collection_from(response.body, 'time-entries/time-entry')
     end
 
