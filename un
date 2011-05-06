@@ -134,21 +134,18 @@ private
     @me ||= people[me_id]
   end
  
-  # cached tickets ticket_id -> num
-  def tickets
-  end
-
   # === Methods ===
 
   # find persons by regexp, if blank than find me
   def find_persons(regx = "")
     return nil if regx.nil?
 
-    res = if regx == ""
-      people.select{|id, login| id == me_id }
+    res = []
+    if regx == ""
+      return [me_id]
     else
       regx = enc_cmd(regx)
-      people.select{|id, login| login.mb_chars.downcase =~ /#{regx.mb_chars.strip.downcase}/i}
+      res = people.select{|id, login| login.mb_chars.downcase =~ /#{regx.mb_chars.strip.downcase}/i}
     end
 
     if !res.empty?
@@ -159,7 +156,7 @@ private
     end
   end
 
-  def show_projects
+  def show_projects #!
     projects = Unfuzzle.projects
 
     say "    ", nil, false
@@ -177,15 +174,27 @@ private
     end
   end
 
-  def show_reports
+  def show_reports #!
     rep = Unfuzzle::TicketReport.all
     rep.each do |report|
       say report.id.to_s.ljust(10), :yellow, false
       say report.title
     end
   end
+
+  # Ticket Heads
+
+  def render_ticket_head(ticket)
+    color = color(ticket.priority)
+    say ticket.number.to_s.ljust(6), :yellow, false
+    say ticket.title.mb_chars[0..67].ljust(72), color, false
+    say ticket.status.ljust(14), color, false
+    say people[ticket.reporter_id].to_s.mb_chars.ljust(15), color, false
+    say people[ticket.assignee_id].to_s.mb_chars.ljust(15), color, false
+    say ticket.hours.to_s, color, true
+  end
   
-  def show_tickets(tickets)
+  def render_ticket_heads(tickets)
     groups = {}
     tickets.each do |ticket|
       groups[ticket.status] ||= []
@@ -193,33 +202,12 @@ private
     end
     
     groups.each do |group, tickets|
-      tickets.each do |ticket|
-        color = color(ticket.priority)
-    
-        say ticket.number.to_s.ljust(6), :yellow, false
-        say ticket.title.mb_chars[0..67].ljust(72), color, false
-        say ticket.status.ljust(14), color, false
-        say people[ticket.reporter_id].to_s.mb_chars.ljust(15), color, false
-        say people[ticket.assignee_id].to_s.mb_chars.ljust(15), color, false
-        say ticket.hours.to_s, color, true
-      end
-      
+      tickets.each{|ticket| render_ticket_head(ticket) }
       say ''
     end
   end
 
-  def show_all_active_tickets(name = nil)
-    ass_ids = find_persons(name == "" ? nil : name)
-    show_tickets_groups(ass_ids)
-  end  
-  
-  def show_tickets_groups(ass_ids = nil)
-    t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, ALL_ACTIVE_TICKETS)
-    t.reject!{|ticket| ass_ids && !ass_ids.include?(ticket.assignee_id) }
-    render_ticket_groups(t)
-  end
-  
-  def render_ticket_groups(t)
+  def render_ticket_heads_by_people(t)
     groups = {}
     t.each do |ticket|
       groups[ticket.assignee_id] ||= []
@@ -228,53 +216,26 @@ private
 
     groups.each do |ass_id, tickets|
       say "============== #{people[ass_id].to_s.mb_chars} ================", :on_red, true
-      show_tickets tickets
+      render_ticket_heads tickets
       say ''
     end
   end
 
-  def show_my_tickets
+  def show_all_active_tickets(name = nil) #!
+    ass_ids = find_persons(name == "" ? nil : name) || []
+    t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, ALL_ACTIVE_TICKETS)
+    t.reject!{|ticket| ass_ids && !ass_ids.include?(ticket.assignee_id) }
+    render_ticket_heads_by_people(t)
+  end  
+  
+  def show_my_tickets #!
     t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, MY_ACTIVE_TICKETS)
-    render_ticket_groups t
-  end
-  
-  def show_time_groups(times)
-    groups = {}
-    times.each do |time|
-      groups[time.person_id] ||= []
-      groups[time.person_id] << time
-    end
-    
-    groups.each do |group, times|
-      say "============== #{people[group].to_s.mb_chars} ================", :on_red, true
-      show_date_times(times)
-      say ''
-    end
-  end
-  
-  def show_date_times(times)
-    groups = {}
-    times.each do |time|
-      groups[time.date] ||= []
-      groups[time.date] << time
-    end
-
-    sum = 0    
-    groups.each do |group, times|
-      say "#{group.to_s}", :on_blue, true
-      sm = show_times(times)
-      say ''
-      
-      sum += sm
-    end
-    say ''.ljust(8), nil, false
-    say ''.ljust(72), nil, false
-    say (sum.to_s + " h.").ljust(10), :on_blue, true
-    
-    
+    render_ticket_heads_by_people t
   end
 
-  def show_times(times)
+  # TimeEntry
+
+  def render_date_times(times)
     sum = 0
     times.each do |time|
       say time.ticket_id.to_s.ljust(8), :yellow, false
@@ -293,6 +254,20 @@ private
     sum
   end
   
+  def render_people_times(times)
+    groups = {}
+    times.each do |time|
+      groups[time.person_id] ||= []
+      groups[time.person_id] << time
+    end
+    
+    groups.each do |group, times|
+      say "============== #{people[group].to_s.mb_chars} ================", :on_red, true
+      render_date_times(times)
+      say ''
+    end
+  end
+
   def filter_times(times, for_id = nil)
     res = times.select do |time|
       time.person_id == for_id
@@ -307,8 +282,10 @@ private
     
     t = Unfuzzle::TimeEntry.time_invested(project_id, Time.now - period * DAY, Time.now)
     t = filter_times(t, me_id) if me
-    show_time_groups(t)
+    render_people_times(t)
   end
+
+  # Ticket
 
   def render_comment(cm)
     say people[cm.author_id].to_s.mb_chars, :on_blue, false
@@ -335,12 +312,11 @@ private
 
   def show_ticket(num)
     t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, num)
-
-    comments = nil
     times = nil
-
     render_ticket(t, cm)
   end
+
+  # 
 
   def update_tickets(tickets, new_status)
     tickets = tickets.split(",").map &:strip
@@ -382,10 +358,9 @@ private
     end
   end
   
-  def new_ticket(title, assignee = nil, priority = nil)
+  def new_ticket(title, assignee = "", priority = 3)
     # find user
-    ass_ids = find_persons(assignee)
-    ass_id = ass_ids.first
+    ass_id = find_persons(assignee).first
 
     prio = priority.blank? ? 3 : priority.to_i
 
@@ -419,7 +394,7 @@ private
     
     cm = Unfuzzle::Comment.new
     cm.body = text
-    cm.author_id = find_persons.first
+    cm.author_id = me_id
     
     cm.create(project_id, t.id)
     
@@ -436,7 +411,7 @@ private
     time.hours = hours
     time.ticket_id = t.id
     time.date = date.blank? ?  Time.now.strftime("%Y-%m-%d") : date
-    time.person_id = find_persons.first
+    time.person_id = me_id
     
     time.create(project_id, t.id)
     
