@@ -85,7 +85,7 @@ private
     end    
   end
 
-  def project_id    
+  def default_project_id    
     DEFAULT_PROJECT_ID  
   end
 
@@ -228,13 +228,13 @@ private
 
   def show_all_active_tickets(name = nil) #!
     ass_ids = find_persons(name == "" ? nil : name) || []
-    t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, ALL_ACTIVE_TICKETS)
+    t = Unfuzzle::Ticket.find_all_by_project_and_report(default_project_id, ALL_ACTIVE_TICKETS)
     t.reject!{|ticket| ass_ids && !ass_ids.include?(ticket.assignee_id) }
     render_ticket_heads_by_people(t)
   end  
   
   def show_my_tickets #!
-    t = Unfuzzle::Ticket.find_all_by_project_and_report(project_id, MY_ACTIVE_TICKETS)
+    t = Unfuzzle::Ticket.find_all_by_project_and_report(default_project_id, MY_ACTIVE_TICKETS)
     render_ticket_heads_by_people t
   end
 
@@ -285,7 +285,7 @@ private
     period = 0 if period.blank?
     period = period.to_i
     
-    t = Unfuzzle::TimeEntry.time_invested(project_id, Time.now - period * DAY, Time.now)
+    t = Unfuzzle::TimeEntry.time_invested(default_project_id, Time.now - period * DAY, Time.now)
     t = filter_times(t, me_id) if me
     render_people_times(t)
   end
@@ -316,7 +316,7 @@ private
   end
 
   def show_ticket(num)
-    t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, num)
+    t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, num)
     times = nil
     render_ticket(t, cm)
   end
@@ -326,7 +326,7 @@ private
   def update_tickets(tickets, new_status)
     tickets = tickets.split(",").map &:strip
     if !tickets.blank? && !new_status.blank?
-      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
+      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(default_project_id, num) rescue nil }.compact
       say "Update tickets #{ts.map(&:number) * ','} to status #{new_status}"
 
       ts.each do |t|
@@ -342,7 +342,7 @@ private
   def update_tickets_assignee(tickets, new_assignee)
     tickets = tickets.split(",").map &:strip
     if !tickets.blank?
-      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(project_id, num) rescue nil }.compact
+      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(default_project_id, num) rescue nil }.compact
  
       # find person
       ass_ids = find_persons(new_assignee)
@@ -374,7 +374,7 @@ private
     t.assignee_id = ass_id
     t.reporter_id = find_persons.first # me
     t.priority = prio
-    t.project_id = project_id
+    t.project_id = default_project_id
 
     say "Now enter description"    
     t.description = enc_input(Readline::readline('> '))
@@ -392,7 +392,7 @@ private
   end
 
   def add_comment(number)
-    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
+    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, number)
     
     say "Enter body of comment: ", :red, true
     text = enc_input(Readline::readline('> '))
@@ -409,7 +409,7 @@ private
   end
 
   def add_time(number, hours, comment = "", date = "")
-    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
+    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, number)
     
     time = Unfuzzle::TimeEntry.new
     time.description = enc_cmd(comment)
