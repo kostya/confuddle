@@ -346,14 +346,14 @@ private
  
       # find person
       ass_ids = find_persons(new_assignee)
-      exit 1 if persons.size < 1
+      exit 1 if ass_ids.size < 1
 
       person = people[ass_ids.first]
 
       puts "Update tickets #{ts.map(&:number) * ','} to assignee #{person}"
 
       ts.each do |t|
-        t.assignee_id = ass_id
+        t.assignee_id = ass_ids.first
         t.update
         render_ticket(t)
       end
