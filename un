@@ -15,6 +15,7 @@ CMD_WIN_ENC = "windows-1251"
 $KCODE='u'
 require 'rubygems'
 require 'yaml'
+require 'benchmark'
 
 class Object
   def blank?
@@ -30,9 +31,11 @@ class Unfuddle < Thor::Group
 
   PASS_FILE = "#{HOME_DIR}/.passwd_to_unfuddle"
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
+  CACHED_PROJECTS = "#{HOME_DIR}/.cached_projects.yml"
   #CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
   DAY = 60 * 60 * 24
   CACHED_PERIOD = 3 * DAY
+  CACHED_PROJECTS_PERIOD = 10 * DAY
   #CACHED_TICKETS_PERIOD = 60 # 1 minute
 
   argument :act, :default => "my"
@@ -134,6 +137,24 @@ private
     @me ||= people[me_id]
   end
 
+
+  def cached_projects
+    return @cached_projects if @cached_projects
+
+    # cached peoples
+    if File.exists?(CACHED_PROJECTS) && File.ctime(CACHED_PROJECTS) > (Time.now - CACHED_PROJECTS_PERIOD)
+      @cached_projects = YAML.load_file(CACHED_PROJECTS)
+    else
+      projects = Unfuzzle.projects
+      @cached_projects = {}
+      projects.each do |project|
+        @cached_projects[project.id] = project.title
+      end
+      File.open(CACHED_PROJECTS, 'w'){|f| f.write(YAML.dump(@cached_projects))}
+    end
+
+    @cached_projects
+  end
 
   def cached_tickets
     
@@ -433,6 +454,20 @@ private
     render_ticket(t, cms)
   end
 
+  def a
+    t = Unfuzzle::Ticket.all_by_dinamic_report
+    t.each do |tt|
+      say tt.title.to_s.mb_chars, :blue, false
+    end
+  end
+
+  def clear
+    require 'fileutils'
+    FileUtils.rm(CACHED_PEOPLE) rescue nil
+    FileUtils.rm(CACHED_PROJECTS) rescue nil
+  rescue
+  end
+
 public
 
   def do_action
@@ -440,6 +475,8 @@ public
       say "no matches for me", :red, true
       exit 1
     end
+
+    tm = Time.now
 
     case act
     when 'projects' then show_projects
@@ -464,10 +501,16 @@ public
     when 'addt' then add_time(param, param2, param3, param4)
     when 'addcm' then add_comment(param)
 
+    when 'a' then a
+
+    when 'cleat' then clear
+
     else
       say "unknown action #{act}", :red, true
       exit 1
     end
+
+    say "method #{act} time: #{Time.now - tm}"
   end
 
 end

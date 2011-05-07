@@ -71,7 +71,27 @@ module Unfuzzle
       response = Request.get("/projects/#{project_id}/ticket_reports/#{report_id}/generate")
       collection_from(response.body, 'tickets/ticket')
     end
-    
+
+
+    def self.all_by_dinamic_report(with_project_ids = nil)
+      query = "?title=Dynamic&conditions_string=status-neq-closed&fields_string=id,number,title,hours,assignee,status,reporter" #assignee-eq-current,
+
+      res = []
+
+      if with_project_ids.blank?
+        response = Request.get("/ticket_reports/dynamic", query)
+        res = collection_from(response.body, 'tickets/ticket')
+      else
+        with_project_ids.each do |id|
+          response = Request.get("/projects/#{id}/ticket_reports/dynamic", query)
+          res << collection_from(response.body, 'tickets/ticket')
+        end
+      end
+
+      res.flatten
+    end
+
+   
     # The Milestone associated with this ticket
     def milestone
       Milestone.find_by_project_id_and_milestone_id(project_id, milestone_id)
