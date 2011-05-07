@@ -229,7 +229,7 @@ private
   def show_all_active_tickets(name = nil) #!
     ass_ids = find_persons(name == "" ? nil : name) || []
     t = Unfuzzle::Ticket.find_all_by_project_and_report(default_project_id, ALL_ACTIVE_TICKETS)
-    t.reject!{|ticket| ass_ids && !ass_ids.include?(ticket.assignee_id) }
+    t.reject!{|ticket| !ass_ids.blank? && !ass_ids.include?(ticket.assignee_id) }
     render_ticket_heads_by_people(t)
   end  
   
