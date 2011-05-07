@@ -1,1 +1,1 @@
-"ruby.exe" "%~dpn0" %* 
+"ruby.exe" "%~dpn0" %* | more

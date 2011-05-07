@@ -503,7 +503,7 @@ public
 
     when 'a' then a
 
-    when 'cleat' then clear
+    when 'clear' then clear
 
     else
       say "unknown action #{act}", :red, true
