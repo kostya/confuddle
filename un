@@ -16,18 +16,12 @@ $KCODE='u'
 require 'rubygems'
 require 'yaml'
 require 'benchmark'
-
-class Object
-  def blank?
-    !self || self.empty?
-  end
-end
-
+require 'active_support/core_ext/object/blank'
 require File.dirname(__FILE__) + '/lib/unfuzzle/lib/unfuzzle'
-require 'thor/group'
+require 'thor'
 require 'readline'
 
-class Unfuddle < Thor::Group
+class Unfuddle < Thor
 
   PASS_FILE = "#{HOME_DIR}/.passwd_to_unfuddle"
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
@@ -38,23 +32,9 @@ class Unfuddle < Thor::Group
   CACHED_PROJECTS_PERIOD = 10 * DAY
   #CACHED_TICKETS_PERIOD = 60 # 1 minute
 
-  argument :act, :default => "my"
-  argument :param, :default => ""
-  argument :param2, :default => ""
-  argument :param3, :default => ""
-  argument :param4, :default => ""
-
-  if RUBY_PLATFORM['mingw']
-    require 'iconv'
-    def say(*args)
-      args[0] = Iconv.new(WIN_ENC, UNFUDDLE_ENC).iconv(args.at(0).to_s) rescue args.at(0).to_s
-      super
-    end
-  end
-
   def initialize(*args)
     unless File.exists?(PASS_FILE)
-      say "you should create #{PASS_FILE} file", :red, true
+      say "Error: you should create #{PASS_FILE} file", :red, true
       exit 1
     end
 
@@ -64,15 +44,31 @@ class Unfuddle < Thor::Group
     Unfuzzle.password  = pass.at(2)
     Unfuzzle.use_ssl   = true
 
+    unless me_id
+      say "Error: no matches for me", :red, true
+      exit 1
+    end
+
     super
   end
 
 
 private
 
+  WIN = RUBY_PLATFORM['mingw']
+  if WIN
+    require 'iconv'
+  end
+
+  if WIN    
+    def say(*args)
+      args[0] = Iconv.new(WIN_ENC, UNFUDDLE_ENC).iconv(args.at(0).to_s) rescue args.at(0).to_s
+      super
+    end
+  end
+
   def enc_input(text)
-    if RUBY_PLATFORM['mingw']
-      require 'iconv'
+    if WIN
       Iconv.new(UNFUDDLE_ENC, WIN_ENC).iconv(text.to_s)
     else
       text
@@ -80,8 +76,7 @@ private
   end
 
   def enc_cmd(text)
-    if RUBY_PLATFORM['mingw']
-      require 'iconv'
+    if WIN
       Iconv.new(UNFUDDLE_ENC, CMD_WIN_ENC).iconv(text.to_s)
     else
       text
@@ -461,57 +456,94 @@ private
     end
   end
 
+public
+
+  desc "projects", "show all projects for your account"
+  def projects
+    show_projects
+  end
+
+  desc "reports", "show all reports for your account"
+  def reports
+    show_reports
+  end
+
+  desc "all [REGEXP]", "show all tickets"
+  def all(regexp)
+    show_all_active_tickets(regexp)
+  end
+
+  desc "my", "show tickets assignee to me"
+  def my
+    show_my_tickets
+  end
+
+  desc "show NUMBER", "show ticket by number"
+  def show(number)
+    show_ticket(number)    
+  end
+
+  desc "upd TICKETS [NEW_STATUS]", "update tickets statuses"
+  def assi(tickets, new_status)
+    update_tickets(tickets, new_status)
+  end
+
+  desc "assi TICKETS [NEW_ASSIGNEE]", "update tickets assingee"
+  def assi(tickets, new_assignee)
+    update_tickets(tickets, new_assignee)
+  end
+
+  desc "new TITLE [ASSIGNEE] [PRIORITY]", "create ticket"
+  def new(title, assignee, priority)
+    update_tickets(title, assignee, priority)
+  end
+
+  desc "clear", "clear caches"
   def clear
     require 'fileutils'
     FileUtils.rm(CACHED_PEOPLE) rescue nil
     FileUtils.rm(CACHED_PROJECTS) rescue nil
-  rescue
+    say "cached cleared"
   end
 
-public
-
-  def do_action
-    unless me_id
-      say "no matches for me", :red, true
-      exit 1
-    end
-
-    tm = Time.now
-
-    case act
-    when 'projects' then show_projects
-    when 'reports' then show_reports
-    
-    # group tickets
-    when 'all' then show_all_active_tickets(param)
-    when 'my' then show_my_tickets
-    
-    # ticket
-    when 'show' then show_ticket(param)
-    when 'upd' then update_tickets(param, param2)
-    when 'assi' then update_tickets_assignee(param, param2)
-    when 'new' then new_ticket(param, param2, param3)
-    
-    #times
-    when 'at'  then all_times_report(false, param)
-    when 'atm'  then all_times_report(true, param)
-    when 't'  then times_report(false, param)
-    when 'mt' then times_report(true, param)
-    
-    when 'addt' then add_time(param, param2, param3, param4)
-    when 'addcm' then add_comment(param)
-
-    when 'a' then a
-
-    when 'clear' then clear
-
-    else
-      say "unknown action #{act}", :red, true
-      exit 1
-    end
-
-    say "method #{act} time: #{Time.now - tm}"
+  # Times
+  desc "tm PERIOD", "show my times report"
+  def tm(period)
+    times_report(true, period)
   end
+
+  desc "t PERIOD", "show all times report"
+  def t(period)
+    times_report(false, period)
+  end
+
+  desc "addt TICKER_NUMBER HOURS COMMENT [DATE]", "add time"
+  def addt(ticket_number, hours, comment, date)
+    add_time(ticket_number, hours, comment, date)
+  end
+
+  desc "addcm TICKER_NUMBER", "add ticket comment"
+  def addcm(ticket_number)
+    addcm(ticket_number)
+  end
+
+
+  desc "atm PERIOD", "show my times report for all projects"
+  def atm(period)
+    all_times_report(true, period)
+  end
+
+  desc "at PERIOD", "show all times report for all projects"
+  def at(period)
+    all_times_report(false, period)
+  end
+
+  desc "test", "test action"
+  def test
+    puts "test"
+  end
+
+  default_task(:my) # by default
 
 end
 
