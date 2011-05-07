@@ -489,12 +489,12 @@ public
   end
 
   desc "assi TICKETS [NEW_ASSIGNEE]", "update tickets assingee"
-  def assi(tickets, new_assignee)
+  def assi(tickets, new_assignee = "")
     update_tickets(tickets, new_assignee)
   end
 
   desc "new TITLE [ASSIGNEE] [PRIORITY]", "create ticket"
-  def new(title, assignee, priority)
+  def new(title, assignee = "", priority = 3)
     update_tickets(title, assignee, priority)
   end
 
@@ -508,17 +508,17 @@ public
 
   # Times
   desc "tm PERIOD", "show my times report"
-  def tm(period)
+  def tm(period = 0)
     times_report(true, period)
   end
 
   desc "t PERIOD", "show all times report"
-  def t(period)
+  def t(period = 0)
     times_report(false, period)
   end
 
   desc "addt TICKER_NUMBER HOURS COMMENT [DATE]", "add time"
-  def addt(ticket_number, hours, comment, date)
+  def addt(ticket_number, hours, comment, date = nil)
     add_time(ticket_number, hours, comment, date)
   end
 
@@ -529,12 +529,12 @@ public
 
 
   desc "atm PERIOD", "show my times report for all projects"
-  def atm(period)
+  def atm(period = 0)
     all_times_report(true, period)
   end
 
   desc "at PERIOD", "show all times report for all projects"
-  def at(period)
+  def at(period = 0)
     all_times_report(false, period)
   end
 
