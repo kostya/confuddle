@@ -73,8 +73,10 @@ module Unfuzzle
     end
 
 
-    def self.all_by_dinamic_report(with_project_ids = nil)
-      query = "?title=Dynamic&conditions_string=status-neq-closed&fields_string=id,number,title,hours,assignee,status,reporter" #assignee-eq-current,
+    def self.all_by_dinamic_report(with_project_ids = nil, only_my_tickets = false)
+      query = "?title=Dynamic&conditions_string=status-neq-closed"
+      query += ",assignee-eq-current" if only_my_tickets
+      query += "&fields_string=id,number,title,hours,assignee,status,reporter"
 
       res = []
 

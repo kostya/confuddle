@@ -5,19 +5,18 @@
 
 HOME_DIR = ENV["HOME"]
 DEFAULT_PROJECT_ID = 20674 # lf
-ALL_ACTIVE_TICKETS = 186076 # all active tickets report
-MY_ACTIVE_TICKETS = 215715 # all my tickets report
 
 UNFUDDLE_ENC = "utf-8"
 WIN_ENC = "cp866"
 CMD_WIN_ENC = "windows-1251"
 
 $KCODE='u'
+
 require 'rubygems'
 require 'yaml'
 require 'benchmark'
 require 'active_support/core_ext/object/blank'
-require File.dirname(__FILE__) + '/lib/unfuzzle/lib/unfuzzle'
+require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 require 'thor'
 require 'readline'
 
@@ -48,6 +47,8 @@ class Unfuddle < Thor
       say "Error: no matches for me", :red, true
       exit 1
     end
+
+    @started_at = Time.now
 
     super
   end
@@ -81,8 +82,12 @@ private
     end    
   end
 
-  def default_project_id    
-    DEFAULT_PROJECT_ID  
+  def default_project_ids
+    [DEFAULT_PROJECT_ID]
+  end
+
+  def default_project_id
+    default_project_ids.first
   end
 
   def color(prio)
@@ -93,6 +98,14 @@ private
       when 4; :red
       when 5; :on_red
     end
+  end
+
+  def read_text
+    lines = []
+    while line = Readline::readline("> ")
+      lines << line
+    end
+    lines * "\n"
   end
 
   # people {id => name}
@@ -141,7 +154,7 @@ private
       projects = Unfuzzle.projects
       @cached_projects = {}
       projects.each do |project|
-        @cached_projects[project.id] = project.title
+        @cached_projects[project.id] = project.name
       end
       File.open(CACHED_PROJECTS, 'w'){|f| f.write(YAML.dump(@cached_projects))}
     end
@@ -206,7 +219,7 @@ private
   def render_ticket_head(ticket)
     color = color(ticket.priority)
     say ticket.number.to_s.ljust(6), :yellow, false
-    say ticket.title.mb_chars[0..67].ljust(72), color, false
+    say ticket.title.mb_chars[0..60].ljust(65), color, false
     say ticket.status.ljust(14), color, false
     say people[ticket.reporter_id].to_s.mb_chars.ljust(15), color, false
     say people[ticket.assignee_id].to_s.mb_chars.ljust(15), color, false
@@ -240,21 +253,37 @@ private
     end
   end
 
-  def show_all_active_tickets(name = nil) #!
+  def render_ticket_heads_by_project(t)
+    groups = {}
+    t.each do |ticket|
+      groups[ticket.project_id] ||= []
+      groups[ticket.project_id] << ticket
+    end
+
+    groups.each do |project_id, tickets|
+      say "=> #{cached_projects[project_id]}: ", :on_red, true
+      render_ticket_heads_by_people tickets
+      say ''
+    end
+  end
+
+  def show_all_active_tickets(name = nil, all_projects = false) #!
     ass_ids = find_persons(name == "" ? nil : name) || []
-    t = Unfuzzle::Ticket.find_all_by_project_and_report(default_project_id, ALL_ACTIVE_TICKETS)
+    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : default_project_ids, false)
     t.reject!{|ticket| !ass_ids.blank? && !ass_ids.include?(ticket.assignee_id) }
-    render_ticket_heads_by_people(t)
+    render_ticket_heads_by_project t
   end  
   
-  def show_my_tickets #!
-    t = Unfuzzle::Ticket.find_all_by_project_and_report(default_project_id, MY_ACTIVE_TICKETS)
-    render_ticket_heads_by_people t
+  def show_my_tickets(all_projects = false) #!
+    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : default_project_ids, true)
+    render_ticket_heads_by_project t
   end
 
   # TimeEntry
 
   def render_times(times)
+    times = times.sort_by{|t| t.date.to_s }
+
     sum = 0
     times.each do |time|
       say time.ticket_id.to_s.ljust(8), :yellow, false
@@ -288,11 +317,9 @@ private
   end
 
   def filter_times(times, for_id = nil)
-    res = times.select do |time|
+    times.select do |time|
       time.person_id == for_id
     end
-    
-    res.sort_by{|t| t.date.to_s }
   end
 
   def times_report(me = false, period = 0)
@@ -321,7 +348,7 @@ private
     say cm.body.mb_chars, nil, true
   end
 
-  def render_ticket(t, comments = [])
+  def render_ticket(t, comments = [], time_entries = [])
     color = color(t.priority)
 
     say t.number.to_s, :on_red
@@ -331,21 +358,27 @@ private
     say people[t.reporter_id].to_s + " => " + people[t.assignee_id].to_s, color, true
     say t.description.to_s.mb_chars, color, true
     say t.hours.to_s + " h.", color
-    say ''
+
+    if !time_entries.blank?
+      say ''
+      say "Time Entries: ", :blue, true
+      render_times(time_entries)
+    end
+
     if !comments.blank?
+      say ''
       say 'Comments: ', :on_red, true
       comments.each{|cm| render_comment(cm) }
     end
   end
 
-  def show_ticket(num)
+  def show_ticket(num, opt)
     t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, num)
-    times = nil
-    render_ticket(t, cm)
+    times = (opt == "t") ? Unfuzzle::TimeEntry.all_for_ticket(t) : []
+    render_ticket(t, cm, times)
   end
 
   # 
-
   def update_tickets(tickets, new_status)
     tickets = tickets.split(",").map &:strip
     if !tickets.blank? && !new_status.blank?
@@ -400,7 +433,7 @@ private
     t.project_id = default_project_id
 
     say "Now enter description"    
-    t.description = enc_input(Readline::readline('> '))
+    t.description = enc_input( read_text )
 
     say "Create ticket: ", nil, true
     say t.title, nil, true
@@ -418,7 +451,7 @@ private
     t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, number)
     
     say "Enter body of comment: ", :red, true
-    text = enc_input(Readline::readline('> '))
+    text = enc_input( read_text )
     
     cm = Unfuzzle::Comment.new
     cm.body = text
@@ -442,9 +475,11 @@ private
     time.person_id = me_id
     
     time.create(t.project_id, t.id)
+
+    times = Unfuzzle::TimeEntry.all_for_ticket(t)
     
     t.hours = (t.hours.to_f + time.hours.to_f).to_s
-    render_ticket(t, cms)
+    render_ticket(t, cms, times)
   end
 
   def a
@@ -467,7 +502,7 @@ public
   end
 
   desc "all [REGEXP]", "show all tickets"
-  def all(regexp)
+  def all(regexp = "")
     show_all_active_tickets(regexp)
   end
 
@@ -476,9 +511,9 @@ public
     show_my_tickets
   end
 
-  desc "show NUMBER", "show ticket by number"
-  def show(number)
-    show_ticket(number)    
+  desc "show NUMBER [t]", "show ticket by number, [t] - is option for show TimeEntries with ticket"
+  def show(number, opt = "")
+    show_ticket(number, opt)
   end
 
   desc "upd TICKETS [NEW_STATUS]", "update tickets statuses"
@@ -491,7 +526,7 @@ public
     update_tickets(tickets, new_assignee)
   end
 
-  desc "new TITLE [ASSIGNEE] [PRIORITY]", "create ticket"
+  desc "new TITLE [ASSIGNEE] [PRIO]", "create ticket"
   def new(title, assignee = "", priority = 3)
     update_tickets(title, assignee, priority)
   end
@@ -515,12 +550,12 @@ public
     times_report(false, period)
   end
 
-  desc "addt TICKER_NUMBER HOURS COMMENT [DATE]", "add time"
+  desc "addt NUMBER HOURS COMMENT [DATE]", "add time"
   def addt(ticket_number, hours, comment, date = nil)
     add_time(ticket_number, hours, comment, date)
   end
 
-  desc "addcm TICKER_NUMBER", "add ticket comment"
+  desc "addcm NUMBER", "add ticket comment"
   def addcm(ticket_number)
     addcm(ticket_number)
   end
@@ -538,7 +573,6 @@ public
 
   desc "test", "test action"
   def test
-    a
   end
 
   default_task(:my) # by default

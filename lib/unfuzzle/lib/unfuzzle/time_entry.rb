@@ -23,21 +23,21 @@ module Unfuzzle
       }
     end
 
+
     # times for project
     def self.time_invested(project_id, start_date, end_date)
-      # [person, ticket, priority, component, version, severity, milestone, due_on, reporter, assignee, status, resolution]
-      group = "ticket"
-      query = "?group_by=#{group}&start_date=#{start_date.strftime("%Y/%m/%d")}&end_date=#{end_date.strftime("%Y/%m/%d")}"
-      response = Request.get("/projects/#{project_id}/time_invested", query)
+      response = Request.get("/projects/#{project_id}/time_invested", query(start_date, end_date))
       collection_from(response.body, 'time-entries/time-entry')
     end
 
     # times for account
     def self.all_time_invested(start_date, end_date)
-      # [person, ticket, priority, component, version, severity, milestone, due_on, reporter, assignee, status, resolution]
-      group = "ticket"
-      query = "?group_by=#{group}&start_date=#{start_date.strftime("%Y/%m/%d")}&end_date=#{end_date.strftime("%Y/%m/%d")}"
-      response = Request.get("/account/time_invested", query)
+      response = Request.get("/account/time_invested", query(start_date, end_date))
+      collection_from(response.body, 'time-entries/time-entry')
+    end
+
+    def self.all_for_ticket(ticket, start_date = nil, end_date = nil)
+      response = Request.get("/projects/#{ticket.project_id}/tickets/#{ticket.id}/time_entries", query(start_date, end_date))
       collection_from(response.body, 'time-entries/time-entry')
     end
 
@@ -45,6 +45,17 @@ module Unfuzzle
     def create(project_id, ticket_id)
       resource_path = "/projects/#{project_id}/tickets/#{ticket_id}/time_entries"
       Request.post(resource_path, self.to_xml('time-entry'))
+    end
+
+  protected
+
+    def self.query(start_date, end_date)
+      # [person, ticket, priority, component, version, severity, milestone, due_on, reporter, assignee, status, resolution]
+      group = "ticket"
+      query = "?group_by=#{group}"
+      query += "&start_date=#{start_date.strftime("%Y/%m/%d")}" if start_date
+      query += "&end_date=#{end_date.strftime("%Y/%m/%d")}" if end_date
+      query
     end
     
   end
