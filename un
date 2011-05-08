@@ -4,8 +4,6 @@
 # by Makarchev K. 2011
 
 HOME_DIR = ENV["HOME"]
-DEFAULT_PROJECT_ID = 20674 # lf
-
 UNFUDDLE_ENC = "utf-8"
 WIN_ENC = "cp866"
 CMD_WIN_ENC = "windows-1251"
@@ -14,7 +12,6 @@ $KCODE='u'
 
 require 'rubygems'
 require 'yaml'
-require 'benchmark'
 require 'active_support/core_ext/object/blank'
 require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 require 'thor'
@@ -42,6 +39,9 @@ class Unfuddle < Thor
     Unfuzzle.username  = pass.at(1)
     Unfuzzle.password  = pass.at(2)
     Unfuzzle.use_ssl   = true
+
+    @default_project_ids = pass.at(3).to_s.split(",").map(&:to_i)
+    @default_project_ids = [cached_projects.keys] if @default_project_ids.blank?
 
     unless me_id
       say "Error: no matches for me", :red, true
@@ -83,7 +83,7 @@ private
   end
 
   def default_project_ids
-    [DEFAULT_PROJECT_ID]
+    @default_project_ids 
   end
 
   def default_project_id
@@ -234,6 +234,7 @@ private
     end
     
     groups.each do |group, tickets|
+      tickets = tickets.sort_by{|t| t.number.to_i}
       tickets.each{|ticket| render_ticket_head(ticket) }
       say ''
     end
@@ -261,7 +262,7 @@ private
     end
 
     groups.each do |project_id, tickets|
-      say "=> #{cached_projects[project_id]}: ", :on_red, true
+      say "=> #{cached_projects[project_id]}: ", :on_white, true
       render_ticket_heads_by_people tickets
       say ''
     end
@@ -353,6 +354,7 @@ private
 
     say t.number.to_s, :on_red
     say t.title.to_s.mb_chars, :on_blue
+    say cached_projects[t.project_id].to_s, color, true
     say t.status, color
     say t.priority_name, color    
     say people[t.reporter_id].to_s + " => " + people[t.assignee_id].to_s, color, true
@@ -517,7 +519,7 @@ public
   end
 
   desc "upd TICKETS [NEW_STATUS]", "update tickets statuses"
-  def assi(tickets, new_status)
+  def upd(tickets, new_status)
     update_tickets(tickets, new_status)
   end
 

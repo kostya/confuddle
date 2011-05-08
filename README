@@ -1,30 +1,29 @@
 Console Unfuddle, by Makarchev K.
 
-Для установки надо создать файлик HOME_DIR/.passwd_to_unfuddle 
-и прописать:
+create file HOME_DIR/.passwd_to_unfuddle with
 subdomain 
 login 
 password 
+default_projects
 
-и также проставить свои константы, которые в файле un находятся сверху
-
-un projects - список проектов 
-un reports - списко отчетов чтобы проставить константы 
-
-un my - показать мои тикеты 
-un all - показать все тикеты в проекте 
-un all меньш - показать все тикеты для человека совпадающего с регекспом 
-un show 3425 - показать тикет 
-
-un t X - время введенное за X дней (по умолчанию за сегодня) 
-un mt X - время введенной мной за X дней (по умолчанию за сегодня) 
-
-un addt 3425 2.5 "Сделал тикет" [date] - ввести время 
-un upd 3425,1234 resolved - обновить тикетам статусы 
-un assi 3425,1235 меньш - назначить тикеты человеку по регекспу
-un new "title of ticket" меньш - создать тикет человеку по регекспу, дальше будет предложено, ввести текст, чтобы окончить надо ввести Enter
-un addcm 3425 - добавить коммент
-
+Tasks:
+  un addcm NUMBER                      # add ticket comment
+  un addt NUMBER HOURS COMMENT [DATE]  # add time
+  un all [REGEXP]                      # show all tickets
+  un assi TICKETS [NEW_ASSIGNEE]       # update tickets assingee
+  un at PERIOD                         # show all times report for all projects
+  un atm PERIOD                        # show my times report for all projects
+  un clear                             # clear caches
+  un help [TASK]                       # Describe available tasks or one specific task
+  un my                                # show tickets assignee to me
+  un new TITLE [ASSIGNEE] [PRIO]       # create ticket
+  un projects                          # show all projects for your account
+  un reports                           # show all reports for your account
+  un show NUMBER [t]                   # show ticket by number, [t] - is option for show TimeEntries with ticket
+  un t PERIOD                          # show all times report
+  un test                              # test action
+  un tm PERIOD                         # show my times report
+  un upd TICKETS [NEW_STATUS]          # update tickets statuses
 
 Used gems:
   unfuzzle by Patrick Reagan of Viget Labs
