@@ -55,10 +55,8 @@ class Unfuddle < Thor
 
 private
 
-  WIN = RUBY_PLATFORM['mingw']
-  if WIN
-    require 'iconv'
-  end
+  WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
+  require 'iconv' if WIN
 
   if WIN    
     def say(*args)
@@ -540,11 +538,10 @@ public
 
   desc "test", "test action"
   def test
-    puts "test"
+    a
   end
 
   default_task(:my) # by default
-
 end
 
 Unfuddle.start
