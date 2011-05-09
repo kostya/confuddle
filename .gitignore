@@ -1,1 +1,17 @@
+.DS_Store
+log
+log/*.log
+tmp/*
+nbproject
+.tmp_*
+.project
+.idea/**/*
+.idea/*
+.idea
+.rakeTasks
 *.iml
+*.pid
+database.yml
+*.auth
+.generators
+.rakeTasks

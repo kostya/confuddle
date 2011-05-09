@@ -1,10 +1,7 @@
 Console Unfuddle, by Makarchev K.
+2011 Varamashvili M.
 
-create file HOME_DIR/.passwd_to_unfuddle with
-subdomain 
-login 
-password 
-default_projects
+copy .passwd_to_unfuddle.example.yml to HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
 
 Tasks:
   un addcm NUMBER                      # add ticket comment
@@ -13,6 +10,7 @@ Tasks:
   un assi TICKETS [NEW_ASSIGNEE]       # update tickets assingee
   un at PERIOD                         # show all times report for all projects
   un atm PERIOD                        # show my times report for all projects
+  un atmp PERIOD                       # show all times report for all projects with projects names
   un clear                             # clear caches
   un help [TASK]                       # Describe available tasks or one specific task
   un my                                # show tickets assignee to me

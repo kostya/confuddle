@@ -11,6 +11,7 @@ module Unfuzzle
     attribute :hours
     attribute :person_id, :from => "person-id", :type => :integer
     attribute :ticket_id, :from => "ticket-id", :time => :integer
+    attribute :project_id
 
     # Hash representation of this time entry's data (for updating)
     def to_hash
@@ -57,7 +58,25 @@ module Unfuzzle
       query += "&end_date=#{end_date.strftime("%Y/%m/%d")}" if end_date
       query
     end
-    
+
+    # Return a list of all tickets for all account user registred at
+    def self.time_invested_for_account(start_date, end_date)
+      group = "project"
+      query = "?group_by=#{group}&start_date=#{start_date.strftime("%Y/%m/%d")}&end_date=#{end_date.strftime("%Y/%m/%d")}"
+      response = Request.get("/account/time_invested", query)
+      groups =  Unfuzzle::Group.collection_from(response.body, 'group')
+      coll = []
+
+      groups.each do |group|
+        tcoll = collection_from(group.source_data, 'time-entries/time-entry')
+        tcoll.each do |te|
+          te.project_id = group.title
+        end
+        coll << tcoll
+      end
+
+      coll.flatten
+    end
   end
 end
   
