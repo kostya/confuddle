@@ -104,7 +104,12 @@ private
     while line = Readline::readline("> ")
       lines << line
     end
-    lines * "\n"
+
+  rescue Interrupt => e
+    lines
+
+  ensure
+    enc_input(lines * "\n")
   end
 
   # people {id => name}
@@ -435,7 +440,7 @@ private
     t.project_id = default_project_id
 
     say "Now enter description"    
-    t.description = enc_input( read_text )
+    t.description = read_text
 
     say "Create ticket: ", nil, true
     say t.title, nil, true
@@ -453,7 +458,7 @@ private
     t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, number)
     
     say "Enter body of comment: ", :red, true
-    text = enc_input( read_text )
+    text = read_text
     
     cm = Unfuzzle::Comment.new
     cm.body = text
