@@ -1,10 +1,6 @@
-Console Unfuddle, by Makarchev K.
+Console Unfuddle, by Makarchev K., Varamashvili M.
 
-create file HOME_DIR/.passwd_to_unfuddle with
-subdomain 
-login 
-password 
-default_projects
+copy .passwd_to_unfuddle.example.yml to HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
 
 Tasks:
   un addcm NUMBER                      # add ticket comment

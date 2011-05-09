@@ -1,12 +1,8 @@
-#!/usr/bin/env ruby     
+#!/usr/bin/env ruby
 
 # Console Unfuddle
 # by Makarchev K. 2011
-
-HOME_DIR = ENV["HOME"]
-UNFUDDLE_ENC = "utf-8"
-WIN_ENC = "cp866"
-CMD_WIN_ENC = "windows-1251"
+# by Varamashvili M. 2011
 
 $KCODE='u'
 
@@ -21,7 +17,11 @@ require 'thor'
 
 class Unfuddle < Thor
 
-  PASS_FILE = "#{HOME_DIR}/.passwd_to_unfuddle"
+  UNFUDDLE_ENC = "utf-8"
+  WIN_ENC = "cp866"
+  CMD_WIN_ENC = "windows-1251"
+  HOME_DIR = ENV['HOME']
+  PASS_FILE = File.expand_path("#{HOME_DIR}/.passwd_to_unfuddle.yml")
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
   CACHED_PROJECTS = "#{HOME_DIR}/.cached_projects.yml"
   CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
@@ -30,20 +30,22 @@ class Unfuddle < Thor
   CACHED_PROJECTS_PERIOD = 10 * DAY
   CACHED_TICKETS_PERIOD = 60 * 60
 
+  attr_accessor :default_project_ids
+
   def initialize(*args)
     unless File.exists?(PASS_FILE)
       say "Error: you should create #{PASS_FILE} file", :red, true
       exit 1
     end
 
-    pass = File.open(PASS_FILE){|f| f.read}.split
-    Unfuzzle.subdomain = pass.at(0)
-    Unfuzzle.username  = pass.at(1)
-    Unfuzzle.password  = pass.at(2)
+    pass = YAML.load_file(PASS_FILE)
+    Unfuzzle.subdomain = pass['subdomain']
+    Unfuzzle.username  = pass['username']
+    Unfuzzle.password  = pass['password']
     Unfuzzle.use_ssl   = true
 
-    @default_project_ids = pass.at(3).to_s.split(",").map(&:to_i)
-    @default_project_ids = cached_projects.keys if @default_project_ids.blank?
+    self.default_project_ids = pass['default_project_ids']
+    self.default_project_ids = cached_projects.keys if default_project_ids.blank? || (self.default_project_ids & cached_projects.keys).empty?
 
     unless me_id
       say "Error: no matches for me", :red, true
@@ -57,7 +59,6 @@ class Unfuddle < Thor
 
 
 private
-
   WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
   require 'iconv' if WIN
 
@@ -84,12 +85,8 @@ private
     end    
   end
 
-  def default_project_ids
-    @default_project_ids 
-  end
-
   def default_project_id
-    default_project_ids.first
+    self.default_project_ids.first
   end
 
   def color(prio)
@@ -280,6 +277,7 @@ private
 
     sum = 0
     title_present = false
+
     times.each do |time|
       #say time.ticket_id.to_s.ljust(8), :yellow, false
       title_present = true if time.title.present?
@@ -418,7 +416,6 @@ private
         t.update
         render_ticket(t)
       end
-
     else
       say "no one tickets"
     end

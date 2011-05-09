@@ -1,0 +1,5 @@
+subdomain: kripton
+username: superman
+password: ihateluther
+default_project_ids:
+ - 54321

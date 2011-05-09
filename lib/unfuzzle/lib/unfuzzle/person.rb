@@ -15,5 +15,6 @@ module Unfuzzle
       response = Request.get("/projects/#{project_id}/people")
       collection_from(response.body, 'people/person')
     end
+
   end
 end
