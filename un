@@ -1,32 +1,56 @@
-#!/usr/bin/env ruby     
+#!/usr/bin/env ruby
 
 # Console Unfuddle
 # by Makarchev K. 2011
+# by Varamashvili M. 2011
 
-HOME_DIR = ENV["HOME"]
-UNFUDDLE_ENC = "utf-8"
-WIN_ENC = "cp866"
-CMD_WIN_ENC = "windows-1251"
+# Для установки создайте файлик  HOME_DIR/.passwd_to_unfuddle.yml и заполните его своими значениями
+# Пример в .passwd_to_unfuddle_example.yml
+
+# un projects - список проектов
+# un reports - списко отчетов чтобы проставить константы
+
+# un my - показать мои тикеты
+# un all - показать все тикеты в проекте
+# un all меньш - показать все тикеты для человека совпадающего с регекспом
+# un show 3425 - показать тикет
+
+# un t X - время введенное за X дней (по умолчанию за сегодня)
+# un mt X - время введенной мной за X дней (по умолчанию за сегодня)
+# un mta X - время введенной мной за X дней (по умолчанию за сегодня) во всех проектах
+
+# un addt 3425 2.5 "Сделал тикет" - ввести время
+# un upd resolved 3425,1234 - обновить тикетам статусы
+# un new "title of ticket" меньш - создать тикет человеку по регекспу, дальше будет предложено, ввести текст, по окончить который надо Ctrl+Z, или Ctrl+D
+#                             - по Crtl+C отмена
+# un addcm 3425 - add comment
+
 
 $KCODE='u'
 
 require 'rubygems'
 require 'yaml'
 require 'active_support/core_ext/object/blank'
-require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
+require File.join(File.dirname(File.readlink(__FILE__)),'/lib/unfuzzle/lib/unfuzzle')
 require 'thor'
 require 'readline'
 
 class Unfuddle < Thor
 
-  PASS_FILE = "#{HOME_DIR}/.passwd_to_unfuddle"
+  UNFUDDLE_ENC = "utf-8"
+  WIN_ENC = "cp866"
+  CMD_WIN_ENC = "windows-1251"
+  HOME_DIR = ENV['HOME']
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
   CACHED_PROJECTS = "#{HOME_DIR}/.cached_projects.yml"
+  PASS_FILE = File.expand_path("~/.passwd_to_unfuddle.yml")
   #CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
   DAY = 60 * 60 * 24
   CACHED_PERIOD = 3 * DAY
   CACHED_PROJECTS_PERIOD = 10 * DAY
   #CACHED_TICKETS_PERIOD = 60 # 1 minute
+
+  attr_accessor :default_project_ids,:all_active_tickets_report,:my_active_tickets_report
 
   def initialize(*args)
     unless File.exists?(PASS_FILE)
@@ -34,14 +58,17 @@ class Unfuddle < Thor
       exit 1
     end
 
-    pass = File.open(PASS_FILE){|f| f.read}.split
-    Unfuzzle.subdomain = pass.at(0)
-    Unfuzzle.username  = pass.at(1)
-    Unfuzzle.password  = pass.at(2)
+    pass = YAML.load_file(PASS_FILE)
+    Unfuzzle.subdomain = pass['subdomain']
+    Unfuzzle.username  = pass['username']
+    Unfuzzle.password  = pass['password']
     Unfuzzle.use_ssl   = true
 
-    @default_project_ids = pass.at(3).to_s.split(",").map(&:to_i)
-    @default_project_ids = [cached_projects.keys] if @default_project_ids.blank?
+    self.all_active_tickets_report = pass['all_active_tickets_report']
+    self.my_active_tickets_report = pass['my_active_tickets_report']
+
+    self.default_project_ids = pass['default_project_id'].to_s.split(",").map(&:to_i)
+    self.default_project_ids = [cached_projects.keys] if @default_project_ids.blank?
 
     unless me_id
       say "Error: no matches for me", :red, true
@@ -55,7 +82,6 @@ class Unfuddle < Thor
 
 
 private
-
   WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
   require 'iconv' if WIN
 
@@ -123,7 +149,7 @@ private
     if File.exists?(CACHED_PEOPLE) && File.ctime(CACHED_PEOPLE) > (Time.now - CACHED_PERIOD)
       @cached_people = YAML.load_file(CACHED_PEOPLE)
     else
-      people = Unfuzzle::Person.all
+      people = Unfuzzle::Person.all_for_account()
       @cached_people = {}
       people.each do |person|
         @cached_people[person.id] = {:name => person.last_name.to_s + " " + person.first_name.to_s.mb_chars[0] + ".", :login => person.username}
@@ -282,11 +308,16 @@ private
 
   # TimeEntry
 
-  def render_times(times)
+  def render_times(times, include_project = false)
     times = times.sort_by{|t| t.date.to_s }
 
     sum = 0
+    projects_just_diff = include_project ? 15 : 0
+
     times.each do |time|
+      if(include_project)
+        say (time.project_id || '-N/A-').to_s.ljust(projects_just_diff), :yellow, false
+      end
       say time.ticket_id.to_s.ljust(8), :yellow, false
       say time.description.mb_chars[0..67].ljust(72), nil, false
       say (time.hours.to_s + " h.").ljust(10), nil, false
@@ -303,7 +334,7 @@ private
     sum
   end
   
-  def render_people_times(times)
+  def render_people_times(times, include_project = false)
     groups = {}
     times.each do |time|
       groups[time.person_id] ||= []
@@ -312,7 +343,7 @@ private
     
     groups.each do |group, times|
       say "============== #{people[group].to_s.mb_chars} ================", :on_red, true
-      render_times(times)
+      render_times(times, include_project)
       say ''
     end
   end
@@ -335,10 +366,19 @@ private
   def all_times_report(me = false, period = 0)
     period = 0 if period.blank?
     period = period.to_i
-    
+
     t = Unfuzzle::TimeEntry.all_time_invested(Time.now - period * DAY, Time.now)
     t = filter_times(t, me_id) if me
     render_people_times(t)
+  end
+
+  def times_report_for_all(me = false, period = 0)
+    period = 0 if period.blank?
+    period = period.to_i
+
+    t = Unfuzzle::TimeEntry.time_invested_for_account(Time.now - period * DAY, Time.now)
+    t = filter_times(t, me_id) if me
+    render_people_times(t, true)
   end
 
   # Ticket
@@ -415,7 +455,6 @@ private
         t.update
         render_ticket(t)
       end
-
     else
       say "no one tickets"
     end
@@ -542,6 +581,11 @@ public
   end
 
   # Times
+  desc "atmp PERIOD", "show all times report for all projects with projects names"
+  def atmp(period = 0)
+    times_report_for_all(true, period)
+  end
+
   desc "tm PERIOD", "show my times report"
   def tm(period = 0)
     times_report(true, period)

@@ -15,5 +15,11 @@ module Unfuzzle
       response = Request.get("/projects/#{project_id}/people")
       collection_from(response.body, 'people/person')
     end
+
+    def self.all_for_account()
+      response = Request.get("/people")
+      collection_from(response.body, 'people/person')
+    end
+
   end
 end
