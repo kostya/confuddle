@@ -8,12 +8,10 @@ $KCODE='u'
 
 require 'rubygems'
 require 'yaml'
-#require 'active_support'
-require 'active_support/core_ext/object/blank'
-require 'active_support/core_ext'
+require 'active_support'
 require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 require 'thor'
-#require 'readline'
+require 'readline'
 
 class Unfuddle < Thor
 
