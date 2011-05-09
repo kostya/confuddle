@@ -12,21 +12,23 @@ $KCODE='u'
 
 require 'rubygems'
 require 'yaml'
+#require 'active_support'
 require 'active_support/core_ext/object/blank'
+require 'active_support/core_ext'
 require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 require 'thor'
-require 'readline'
+#require 'readline'
 
 class Unfuddle < Thor
 
   PASS_FILE = "#{HOME_DIR}/.passwd_to_unfuddle"
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
   CACHED_PROJECTS = "#{HOME_DIR}/.cached_projects.yml"
-  #CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
+  CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
   DAY = 60 * 60 * 24
-  CACHED_PERIOD = 3 * DAY
+  CACHED_PERIOD = 10 * DAY
   CACHED_PROJECTS_PERIOD = 10 * DAY
-  #CACHED_TICKETS_PERIOD = 60 # 1 minute
+  CACHED_TICKETS_PERIOD = 60 * 60
 
   def initialize(*args)
     unless File.exists?(PASS_FILE)
@@ -41,7 +43,7 @@ class Unfuddle < Thor
     Unfuzzle.use_ssl   = true
 
     @default_project_ids = pass.at(3).to_s.split(",").map(&:to_i)
-    @default_project_ids = [cached_projects.keys] if @default_project_ids.blank?
+    @default_project_ids = cached_projects.keys if @default_project_ids.blank?
 
     unless me_id
       say "Error: no matches for me", :red, true
@@ -163,7 +165,6 @@ private
   end
 
   def cached_tickets
-    
   end
  
   # === Methods ===
@@ -203,14 +204,6 @@ private
       say project.slug.ljust(20), :green, false
       say project.name.ljust(20), nil, false
       say project.disk_usage
-    end
-  end
-
-  def show_reports #!
-    rep = Unfuzzle::TicketReport.all
-    rep.each do |report|
-      say report.id.to_s.ljust(10), :yellow, false
-      say report.title
     end
   end
 
@@ -262,7 +255,7 @@ private
     end
 
     groups.each do |project_id, tickets|
-      say "=> #{cached_projects[project_id]}: ", :on_white, true
+      say "Project => #{cached_projects[project_id]}: ", :on_white, true
       render_ticket_heads_by_people tickets
       say ''
     end
@@ -286,18 +279,21 @@ private
     times = times.sort_by{|t| t.date.to_s }
 
     sum = 0
+    title_present = false
     times.each do |time|
-      say time.ticket_id.to_s.ljust(8), :yellow, false
-      say time.description.mb_chars[0..67].ljust(72), nil, false
-      say (time.hours.to_s + " h.").ljust(10), nil, false
-      say people[time.person_id].to_s.mb_chars.ljust(15), nil, false
+      #say time.ticket_id.to_s.ljust(8), :yellow, false
+      title_present = true if time.title.present?
+      say time.title.to_s.mb_chars[0..30].ljust(34), :yellow, false if title_present
+      say time.description.mb_chars[0..50].ljust(54), nil, false
+      say (time.hours.to_s + " h.").ljust(9), nil, false
+      say people[time.person_id].to_s.mb_chars.ljust(13), nil, false
       say time.date, nil
       
       sum += time.hours.to_f      
     end
     
-    say ''.ljust(8), nil, false
-    say ''.ljust(72), nil, false
+    say ''.ljust(34), nil, false if title_present
+    say ''.ljust(54), nil, false
     say (sum.to_s + " h.").ljust(10), :red, true
     
     sum
@@ -324,21 +320,28 @@ private
   end
 
   def times_report(me = false, period = 0)
-    period = 0 if period.blank?
-    period = period.to_i
-    
-    t = Unfuzzle::TimeEntry.time_invested(default_project_id, Time.now - period * DAY, Time.now)
+    p = periods(period)
+    t = Unfuzzle::TimeEntry.time_invested(default_project_id, p.at(0), p.at(1))
     t = filter_times(t, me_id) if me
     render_people_times(t)
   end
 
   def all_times_report(me = false, period = 0)
-    period = 0 if period.blank?
-    period = period.to_i
-    
-    t = Unfuzzle::TimeEntry.all_time_invested(Time.now - period * DAY, Time.now)
+    p = periods(period)
+    t = Unfuzzle::TimeEntry.all_time_invested(p.at(0), p.at(1))
     t = filter_times(t, me_id) if me
     render_people_times(t)
+  end
+
+  def periods(period)
+    case period
+      when 'tm' then [Time.now.beginning_of_month, Time.now]
+      when 'lm' then [(Time.now.beginning_of_month-1.seconds).beginning_of_month, (Time.now.beginning_of_month-1.seconds)]
+      when 'tw' then [Time.now.beginning_of_week, Time.now]
+      when 'lw' then [(Time.now.beginning_of_week-1.seconds).beginning_of_week, (Time.now.beginning_of_week-1.seconds)]
+      when 'y' then [(Time.new - 1.day).beginning_of_day, ((Time.new - 1.day).end_of_day)]
+      else [Time.now - period.to_i * DAY, Time.now]
+    end
   end
 
   # Ticket
@@ -498,11 +501,6 @@ public
     show_projects
   end
 
-  desc "reports", "show all reports for your account"
-  def reports
-    show_reports
-  end
-
   desc "all [REGEXP]", "show all tickets"
   def all(regexp = "")
     show_all_active_tickets(regexp)
@@ -513,12 +511,13 @@ public
     show_my_tickets
   end
 
-  desc "show NUMBER [t]", "show ticket by number, [t] - is option for show TimeEntries with ticket"
+  desc "show NUMBER [t]", "show ticket by number, [t] - show TimeEntries"
   def show(number, opt = "")
     show_ticket(number, opt)
   end
 
-  desc "upd TICKETS [NEW_STATUS]", "update tickets statuses"
+  # Upd
+  desc "upd TICKETS NEW_STATUS", "update tickets statuses"
   def upd(tickets, new_status)
     update_tickets(tickets, new_status)
   end
@@ -526,11 +525,6 @@ public
   desc "assi TICKETS [NEW_ASSIGNEE]", "update tickets assingee"
   def assi(tickets, new_assignee = "")
     update_tickets(tickets, new_assignee)
-  end
-
-  desc "new TITLE [ASSIGNEE] [PRIO]", "create ticket"
-  def new(title, assignee = "", priority = 3)
-    update_tickets(title, assignee, priority)
   end
 
   desc "clear", "clear caches"
@@ -542,16 +536,27 @@ public
   end
 
   # Times
-  desc "tm PERIOD", "show my times report"
+  desc "tm PERIOD", "show my times report (PERIOD = [tm lm tw lw y [0-9]+])"
   def tm(period = 0)
     times_report(true, period)
   end
 
-  desc "t PERIOD", "show all times report"
+  desc "t PERIOD", "show all times report (PERIOD = [tm lm tw lw y [0-9]+])"
   def t(period = 0)
     times_report(false, period)
   end
 
+  desc "atm PERIOD", "show my times report for account (PERIOD = [tm lm tw lw y [0-9]+])"
+  def atm(period = 0)
+    all_times_report(true, period)
+  end
+
+  desc "at PERIOD", "show all times report for account (PERIOD = [tm lm tw lw y [0-9]+])"
+  def at(period = 0)
+    all_times_report(false, period)
+  end
+
+  # Add
   desc "addt NUMBER HOURS COMMENT [DATE]", "add time"
   def addt(ticket_number, hours, comment, date = nil)
     add_time(ticket_number, hours, comment, date)
@@ -562,15 +567,9 @@ public
     addcm(ticket_number)
   end
 
-
-  desc "atm PERIOD", "show my times report for all projects"
-  def atm(period = 0)
-    all_times_report(true, period)
-  end
-
-  desc "at PERIOD", "show all times report for all projects"
-  def at(period = 0)
-    all_times_report(false, period)
+  desc "new TITLE [ASSIGNEE] [PRIO]", "create ticket"
+  def new(title, assignee = "", priority = 3)
+    update_tickets(title, assignee, priority)
   end
 
   desc "test", "test action"

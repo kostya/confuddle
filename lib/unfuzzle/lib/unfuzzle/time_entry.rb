@@ -1,16 +1,21 @@
 module Unfuzzle
 
+  class TimeEntryGroup
+    include Graft
+    attribute :title
+  end
+
   class TimeEntry
 
     include Graft
-    
-    attr_accessor :project_id
     
     attribute :date
     attribute :description
     attribute :hours
     attribute :person_id, :from => "person-id", :type => :integer
     attribute :ticket_id, :from => "ticket-id", :time => :integer
+
+    attr_accessor :title # title of ticket
 
     # Hash representation of this time entry's data (for updating)
     def to_hash
@@ -27,13 +32,13 @@ module Unfuzzle
     # times for project
     def self.time_invested(project_id, start_date, end_date)
       response = Request.get("/projects/#{project_id}/time_invested", query(start_date, end_date))
-      collection_from(response.body, 'time-entries/time-entry')
+      parse_group_collection(response.body)
     end
 
     # times for account
     def self.all_time_invested(start_date, end_date)
       response = Request.get("/account/time_invested", query(start_date, end_date))
-      collection_from(response.body, 'time-entries/time-entry')
+      parse_group_collection(response.body)
     end
 
     def self.all_for_ticket(ticket, start_date = nil, end_date = nil)
@@ -57,8 +62,14 @@ module Unfuzzle
       query += "&end_date=#{end_date.strftime("%Y/%m/%d")}" if end_date
       query
     end
+
+    def self.parse_group_collection(body)
+      res = collection_from_block(body, "groups/group") do |str|
+        group = TimeEntryGroup.new(str)
+        times = collection_from(str, 'time-entries/time-entry').map{|time| time.title = group.title; time}
+      end
+      res.flatten
+    end
     
   end
 end
-  
-  

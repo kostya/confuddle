@@ -9,6 +9,10 @@ module Graft
       def collection_from(data_source, node)
         (data_from(data_source)/node).map {|n| new n }
       end
+
+      def collection_from_block(data_source, node, &block)
+        (data_from(data_source)/node).map{|n| yield(n) }
+      end
     end
 
     module InstanceMethods
