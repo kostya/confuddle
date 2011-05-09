@@ -7,19 +7,18 @@ Tasks:
   un addt NUMBER HOURS COMMENT [DATE]  # add time
   un all [REGEXP]                      # show all tickets
   un assi TICKETS [NEW_ASSIGNEE]       # update tickets assingee
-  un at PERIOD                         # show all times report for all projects
-  un atm PERIOD                        # show my times report for all projects
+  un at PERIOD                         # show all times report for account (PERIOD = [tm lm tw lw y [0-9]+])
+  un atm PERIOD                        # show my times report for account (PERIOD = [tm lm tw lw y [0-9]+])
   un clear                             # clear caches
   un help [TASK]                       # Describe available tasks or one specific task
   un my                                # show tickets assignee to me
   un new TITLE [ASSIGNEE] [PRIO]       # create ticket
   un projects                          # show all projects for your account
-  un reports                           # show all reports for your account
-  un show NUMBER [t]                   # show ticket by number, [t] - is option for show TimeEntries with ticket
-  un t PERIOD                          # show all times report
+  un show NUMBER [t]                   # show ticket by number, [t] - show TimeEntries
+  un t PERIOD                          # show all times report (PERIOD = [tm lm tw lw y [0-9]+])
   un test                              # test action
-  un tm PERIOD                         # show my times report
-  un upd TICKETS [NEW_STATUS]          # update tickets statuses
+  un tm PERIOD                         # show my times report (PERIOD = [tm lm tw lw y [0-9]+])
+  un upd TICKETS NEW_STATUS            # update tickets statuses
 
 Used gems:
   unfuzzle by Patrick Reagan of Viget Labs
