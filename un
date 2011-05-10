@@ -256,7 +256,7 @@ private
     end
 
     groups.each do |project_id, tickets|
-      say "Project => #{cached_projects[project_id]}: ", :on_white, true
+      say "Project => #{cached_projects[project_id]}: ", :yellow, true
       render_ticket_heads_by_people tickets
       say ''
     end
@@ -525,7 +525,7 @@ public
 
   desc "assi TICKETS [NEW_ASSIGNEE]", "update tickets assingee"
   def assi(tickets, new_assignee = "")
-    update_tickets(tickets, new_assignee)
+    update_tickets_assignee(tickets, new_assignee)
   end
 
   desc "clear", "clear caches"
