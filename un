@@ -169,6 +169,17 @@ private
     self.projects_aliases[ ticket.project_id ].to_s + "#" + ticket.number.to_s
   end
 
+  def find_project_id_by_alias(al)
+    return default_project_id if al.blank?
+
+    res = self.projects_aliases.detect{|k,v| v == al}
+    if res.present?
+      res.first.to_i
+    else
+      default_project_id
+    end
+  end
+
   # parse number 
   # f#1234 -> [project_id, 1234]
   # p#1235 -> [project_id, 1235]
@@ -178,13 +189,7 @@ private
     if entered_number.to_s.include?('#')
       prj, num = entered_number.to_s.split('#')
 
-      res = self.projects_aliases.detect{|k,v| v == prj}
-      if res.present?
-        [res.first.to_i, num.to_i]
-      else
-        [default_project_id, num.to_i]
-      end
-
+      [find_project_id_by_alias(prj), num.to_i]
     else
       [default_project_id, entered_number.to_i]
     end
@@ -465,7 +470,7 @@ private
     t.assignee_id = ass_id
     t.reporter_id = find_persons.first # me
     t.priority = prio
-    t.project_id = self.projects_aliases[project_alias] || default_project_id
+    t.project_id = find_project_id_by_alias(project_alias)
 
     say "Now enter description"    
     t.description = read_text
@@ -598,8 +603,8 @@ public
   end
 
   desc "new ALIAS TITLE [ASSIGNEE] [PRIO]", "create ticket"
-  def new(alias, title, assignee = "", priority = 3)
-    new_ticket(alias, title, assignee, priority)
+  def new(aliass, title, assignee = "", priority = 3)
+    new_ticket(aliass, title, assignee, priority)
   end
 
   desc "test", "test action"
