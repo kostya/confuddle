@@ -29,7 +29,7 @@ class Unfuddle < Thor
   CACHED_PROJECTS_PERIOD = 10 * DAY
   CACHED_TICKETS_PERIOD = 60 * 60
 
-  attr_accessor :default_project_ids
+  attr_accessor :default_project_id, :projects_aliases
 
   def initialize(*args)
     unless File.exists?(PASS_FILE)
@@ -37,14 +37,16 @@ class Unfuddle < Thor
       exit 1
     end
 
-    pass = YAML.load_file(PASS_FILE)
-    Unfuzzle.subdomain = pass['subdomain']
-    Unfuzzle.username  = pass['username']
-    Unfuzzle.password  = pass['password']
+    cfg = YAML.load_file(PASS_FILE)
+    Unfuzzle.subdomain = cfg['subdomain']
+    Unfuzzle.username  = cfg['username']
+    Unfuzzle.password  = cfg['password']
     Unfuzzle.use_ssl   = true
 
-    self.default_project_ids = pass['default_project_ids']
-    self.default_project_ids = cached_projects.keys if default_project_ids.blank? || (self.default_project_ids & cached_projects.keys).empty?
+    self.default_project_id = cfg['default_project_id']
+    self.default_project_id = cached_projects.keys.first if default_project_id.blank? || ([self.default_project_id] & cached_projects.keys).empty?
+
+    self.projects_aliases = cfg['projects_aliases'] || {}
 
     unless me_id
       say "Error: no matches for me", :red, true
@@ -82,10 +84,6 @@ private
     else
       text
     end    
-  end
-
-  def default_project_id
-    self.default_project_ids.first
   end
 
   def color(prio)
@@ -165,7 +163,31 @@ private
     @cached_projects
   end
 
-  def cached_tickets
+  # number with alias
+  def number_with_a(ticket)
+    return "#" + ticket.number.to_s if ticket.project_id == self.default_project_id
+    self.projects_aliases[ ticket.project_id ].to_s + "#" + ticket.number.to_s
+  end
+
+  # parse number 
+  # f#1234 -> [project_id, 1234]
+  # p#1235 -> [project_id, 1235]
+  # #1235  -> [default_project_id, 1235]
+  # 1235   -> [default_project_id, 1235]
+  def parse_number(entered_number)
+    if entered_number.to_s.include?('#')
+      prj, num = entered_number.to_s.split('#')
+
+      res = self.projects_aliases.detect{|k,v| v == prj}
+      if res.present?
+        [res.first.to_i, num.to_i]
+      else
+        [default_project_id, num.to_i]
+      end
+
+    else
+      [default_project_id, entered_number.to_i]
+    end
   end
  
   # === Methods ===
@@ -212,7 +234,7 @@ private
 
   def render_ticket_head(ticket)
     color = color(ticket.priority)
-    say ticket.number.to_s.ljust(6), :yellow, false
+    say number_with_a(ticket).to_s.ljust(9), :yellow, false
     say ticket.title.mb_chars[0..60].ljust(65), color, false
     say ticket.status.ljust(14), color, false
     say people[ticket.reporter_id].to_s.mb_chars.ljust(15), color, false
@@ -264,13 +286,13 @@ private
 
   def show_all_active_tickets(name = nil, all_projects = false) #!
     ass_ids = find_persons(name == "" ? nil : name) || []
-    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : default_project_ids, false)
+    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : [default_project_id], false)
     t.reject!{|ticket| !ass_ids.blank? && !ass_ids.include?(ticket.assignee_id) }
     render_ticket_heads_by_project t
   end  
   
   def show_my_tickets(all_projects = false) #!
-    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : default_project_ids, true)
+    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : [default_project_id], true)
     render_ticket_heads_by_project t
   end
 
@@ -357,7 +379,7 @@ private
   def render_ticket(t, comments = [], time_entries = [])
     color = color(t.priority)
 
-    say t.number.to_s, :on_red
+    say number_with_a(t).to_s, :on_red
     say t.title.to_s.mb_chars, :on_blue
     say cached_projects[t.project_id].to_s, color, true
     say t.status, color
@@ -380,7 +402,8 @@ private
   end
 
   def show_ticket(num, opt)
-    t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, num)
+    prj, number = parse_number(num)
+    t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(prj, number)
     times = (opt == "t") ? Unfuzzle::TimeEntry.all_for_ticket(t) : []
     render_ticket(t, cm, times)
   end
@@ -389,7 +412,10 @@ private
   def update_tickets(tickets, new_status)
     tickets = tickets.split(",").map &:strip
     if !tickets.blank? && !new_status.blank?
-      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(default_project_id, num) rescue nil }.compact
+      ts = tickets.map{|num| 
+        prj, number = parse_number(num)
+        Unfuzzle::Ticket.find_first_by_project_id_and_number(prj, number) rescue nil 
+      }.compact
       say "Update tickets #{ts.map(&:number) * ','} to status #{new_status}"
 
       ts.each do |t|
@@ -405,7 +431,10 @@ private
   def update_tickets_assignee(tickets, new_assignee)
     tickets = tickets.split(",").map &:strip
     if !tickets.blank?
-      ts = tickets.map{|num| Unfuzzle::Ticket.find_first_by_project_id_and_number(default_project_id, num) rescue nil }.compact
+      ts = tickets.map{|num| 
+        prj, number = parse_number(num)
+        Unfuzzle::Ticket.find_first_by_project_id_and_number(prj, number) rescue nil 
+      }.compact
  
       # find person
       ass_ids = find_persons(new_assignee)
@@ -425,7 +454,7 @@ private
     end
   end
   
-  def new_ticket(title, assignee = "", priority = 3)
+  def new_ticket(project_alias, title, assignee = "", priority = 3)
     # find user
     ass_id = find_persons(assignee).first
 
@@ -436,7 +465,7 @@ private
     t.assignee_id = ass_id
     t.reporter_id = find_persons.first # me
     t.priority = prio
-    t.project_id = default_project_id
+    t.project_id = self.projects_aliases[project_alias] || default_project_id
 
     say "Now enter description"    
     t.description = read_text
@@ -448,13 +477,12 @@ private
     say ''
 
     t.create
-    #t = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(project_id, number)
-    
     render_ticket(t)
   end
 
   def add_comment(number)
-    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, number)
+    prj, number = parse_number(number)
+    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(prj, number)
     
     say "Enter body of comment: ", :red, true
     text = read_text
@@ -471,7 +499,8 @@ private
   end
 
   def add_time(number, hours, comment = "", date = "")
-    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(default_project_id, number)
+    prj, number = parse_number(number)
+    t, cms = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(prj, number)
     
     time = Unfuzzle::TimeEntry.new
     time.description = enc_cmd(comment)
@@ -565,12 +594,12 @@ public
 
   desc "addcm NUMBER", "add ticket comment"
   def addcm(ticket_number)
-    addcm(ticket_number)
+    add_comment(ticket_number)
   end
 
-  desc "new TITLE [ASSIGNEE] [PRIO]", "create ticket"
-  def new(title, assignee = "", priority = 3)
-    update_tickets(title, assignee, priority)
+  desc "new ALIAS TITLE [ASSIGNEE] [PRIO]", "create ticket"
+  def new(alias, title, assignee = "", priority = 3)
+    new_ticket(alias, title, assignee, priority)
   end
 
   desc "test", "test action"

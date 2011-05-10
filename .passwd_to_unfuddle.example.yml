@@ -1,5 +1,7 @@
 subdomain: kripton
 username: superman
 password: ihateluther
-default_project_ids:
- - 54321
+default_project_id: 54321 # ticket number 1234 or #1234
+projects_aliases:
+  54321: a # number like a#1234
+  12345: b # number like b#1234
