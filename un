@@ -9,6 +9,7 @@ $KCODE='u'
 require 'rubygems'
 require 'yaml'
 require 'active_support'
+require 'active_support/time'
 require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 require 'thor'
 require 'readline'
