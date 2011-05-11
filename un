@@ -165,8 +165,8 @@ private
 
   # number with alias
   def number_with_a(ticket)
-    return "#" + ticket.number.to_s if ticket.project_id == self.default_project_id
-    self.projects_aliases[ ticket.project_id ].to_s + "#" + ticket.number.to_s
+    return ticket.number.to_s if ticket.project_id == self.default_project_id
+    self.projects_aliases[ ticket.project_id ].to_s + ticket.number.to_s
   end
 
   def find_project_id_by_alias(al)
@@ -181,17 +181,18 @@ private
   end
 
   # parse number 
-  # f#1234 -> [project_id, 1234]
-  # p#1235 -> [project_id, 1235]
-  # #1235  -> [default_project_id, 1235]
-  # 1235   -> [default_project_id, 1235]
+  # f1234 -> [project_id, 1234]
+  # p1235 -> [project_id, 1235]
+  # 1235  -> [default_project_id, 1235]
   def parse_number(entered_number)
-    if entered_number.to_s.include?('#')
-      prj, num = entered_number.to_s.split('#')
+    entered_number.to_s =~ /(.*?)([0-9]+)/i
+    prj = $1.to_s
+    num = $2.to_s
 
-      [find_project_id_by_alias(prj), num.to_i]
+    if prj.blank?
+      [default_project_id, num.to_i]
     else
-      [default_project_id, entered_number.to_i]
+      [find_project_id_by_alias(prj), num.to_i]
     end
   end
  
