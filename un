@@ -270,7 +270,7 @@ private
     end
 
     groups.each do |ass_id, tickets|
-      say "============== #{people[ass_id].to_s.mb_chars} ================", :on_red, true
+      say "============== #{people[ass_id].to_s.mb_chars} ================ (#{tickets.size}) tickets", :on_red, true
       render_ticket_heads tickets
       say ''
     end
