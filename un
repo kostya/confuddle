@@ -551,6 +551,12 @@ private
       say "set current project to #{number}"
       say ''
       show_projects
+    elsif projects_aliases.values.include?(number.to_s) # alias?
+      self.default_project_id = projects_aliases.detect{|k,v| v == number.to_s}.first rescue self.default_project_id
+      set_config
+      say "set current project to #{number}"
+      say ''
+      show_projects      
     else
       say "bad number #{number}, should be in #{cached_projects.keys.inspect}"
     end
