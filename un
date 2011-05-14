@@ -549,6 +549,8 @@ private
       self.default_project_id = number.to_i
       set_config
       say "set current project to #{number}"
+      say ''
+      show_projects
     else
       say "bad number #{number}, should be in #{cached_projects.keys.inspect}"
     end
@@ -559,6 +561,8 @@ private
       self.projects_aliases[number.to_i] = _alias
       set_config
       say "set project #{number} alias to #{_alias}"
+      say
+      show_projects
     else
       say "bad number #{number}, should be in #{cached_projects.keys.inspect}"
     end
