@@ -1,6 +1,10 @@
 Console Unfuddle, by Makarchev K., Varamashvili M.
 
-copy .passwd_to_unfuddle.example.yml to HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
+1) copy .passwd_to_unfuddle.example.yml to HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
+
+2) "un projects"
+and set for each project aliases "un alias"
+and set current project "un curr"
 
 Tasks:
   un addcm NUMBER                      # add ticket comment
