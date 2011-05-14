@@ -32,6 +32,22 @@ class Unfuddle < Thor
   attr_accessor :default_project_id, :projects_aliases
 
   def initialize(*args)
+
+    get_config
+
+    unless me_id
+      say "Error: no matches for me", :red, true
+      exit 1
+    end
+
+    @started_at = Time.now
+
+    super
+  end
+
+
+private
+  def get_config
     unless File.exists?(PASS_FILE)
       say "Error: you should create #{PASS_FILE} file", :red, true
       exit 1
@@ -47,19 +63,22 @@ class Unfuddle < Thor
     self.default_project_id = cached_projects.keys.first if default_project_id.blank? || ([self.default_project_id] & cached_projects.keys).empty?
 
     self.projects_aliases = cfg['projects_aliases'] || {}
+  end
 
-    unless me_id
-      say "Error: no matches for me", :red, true
-      exit 1
-    end
+  def set_config
+    h = {}
+    h['subdomain'] = Unfuzzle.subdomain
+    h['username'] = Unfuzzle.username
+    h['password'] = Unfuzzle.password
 
-    @started_at = Time.now
+    h['default_project_id'] = self.default_project_id
+    h['projects_aliases'] = self.projects_aliases
 
-    super
+    File.open(PASS_FILE, "w+"){ |file| file.puts(h.to_yaml) }
   end
 
 
-private
+
   WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
   require 'iconv' if WIN
 
@@ -228,7 +247,7 @@ private
     say "disk-usage"
 
     projects.each do |project|
-      say "    ", nil, false
+      say project.id.to_i == self.default_project_id ? "  * " : "    ", nil, false
       say project.id.to_s.ljust(10), :yellow, false
       say project.slug.ljust(20), :green, false
       say project.name.ljust(20), nil, false
@@ -523,10 +542,13 @@ private
     render_ticket(t, cms, times)
   end
 
-  def a
-    t = Unfuzzle::Ticket.all_by_dinamic_report
-    t.each do |tt|
-      say tt.title.to_s.mb_chars, :blue, false
+  def set_current(number)
+    if cached_projects.keys.include?(number.to_i)
+      self.default_project_id = number.to_i
+      set_config
+      say "set current project to #{number}"
+    else
+      say "bad number #{number}, should be in #{cached_projects.keys.inspect}"
     end
   end
 
@@ -610,6 +632,11 @@ public
 
   desc "test", "test action"
   def test
+  end
+
+  desc "curr CURRENT", "set current project id"
+  def curr(current)
+    set_current(current)
   end
 
   default_task(:my) # by default
