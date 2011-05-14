@@ -581,14 +581,24 @@ public
     show_projects
   end
 
-  desc "all [REGEXP]", "show all tickets"
+  desc "all [REGEXP]", "show all tickets for current project"
   def all(regexp = "")
     show_all_active_tickets(regexp)
   end
 
-  desc "my", "show tickets assignee to me"
+  desc "my", "show tickets assignee to me for current project"
   def my
     show_my_tickets
+  end
+
+  desc "alla [REGEXP]", "show all (in all projects) tickets"
+  def alla(regexp = "")
+    show_all_active_tickets(regexp, true)
+  end
+
+  desc "mya", "show tickets (in all projects) assignee to me"
+  def mya
+    show_my_tickets true
   end
 
   desc "show NUMBER [t]", "show ticket by number, [t] - show TimeEntries"
