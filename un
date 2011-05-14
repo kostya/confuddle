@@ -244,14 +244,16 @@ private
     say "id".ljust(10), nil, false
     say "name".ljust(20), nil, false
     say 'title'.ljust(20), nil, false
-    say "disk-usage"
+    say "disk-usage".ljust(20), nil, false
+    say "alias"
 
     projects.each do |project|
       say project.id.to_i == self.default_project_id ? "  * " : "    ", nil, false
       say project.id.to_s.ljust(10), :yellow, false
       say project.slug.ljust(20), :green, false
       say project.name.ljust(20), nil, false
-      say project.disk_usage
+      say project.disk_usage.to_s.ljust(20), nil, false
+      say projects_aliases[project.id].to_s
     end
   end
 
@@ -552,6 +554,16 @@ private
     end
   end
 
+  def set_alias(number, _alias)
+    if cached_projects.keys.include?(number.to_i)
+      self.projects_aliases[number.to_i] = _alias
+      set_config
+      say "set project #{number} alias to #{_alias}"
+    else
+      say "bad number #{number}, should be in #{cached_projects.keys.inspect}"
+    end
+  end
+
 public
 
   desc "projects", "show all projects for your account"
@@ -634,9 +646,14 @@ public
   def test
   end
 
-  desc "curr CURRENT", "set current project id"
+  desc "curr PROJECT_ID", "set current project id"
   def curr(current)
     set_current(current)
+  end
+
+  desc "alias PROJECT_ID ALIAS", "set project alias"
+  def alias(project_id, _alias)
+    set_alias(project_id, _alias)
   end
 
   default_task(:my) # by default
