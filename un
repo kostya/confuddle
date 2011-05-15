@@ -24,9 +24,8 @@ class Unfuddle < Thor
   CACHED_PEOPLE = "#{HOME_DIR}/.cached_people.yml"
   CACHED_PROJECTS = "#{HOME_DIR}/.cached_projects.yml"
   CACHED_TICKETS = "#{HOME_DIR}/.cached_tickets.yml"
-  DAY = 60 * 60 * 24
-  CACHED_PERIOD = 10 * DAY
-  CACHED_PROJECTS_PERIOD = 10 * DAY
+  CACHED_PERIOD = 10.days
+  CACHED_PROJECTS_PERIOD = 10.days
   CACHED_TICKETS_PERIOD = 60 * 60
 
   attr_accessor :default_project_id, :projects_aliases
@@ -81,6 +80,7 @@ private
 
   WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
   require 'iconv' if WIN
+  require 'win32console' if WIN
 
   if WIN    
     def say(*args)
@@ -386,12 +386,14 @@ private
 
   def periods(period)
     case period
+      when 'ty' then [Time.now.beginning_of_year, Time.now]
+      when 'ly' then [(Time.now.beginning_of_year-1.seconds).beginning_of_year, (Time.now.beginning_of_year-1.seconds)]
       when 'tm' then [Time.now.beginning_of_month, Time.now]
       when 'lm' then [(Time.now.beginning_of_month-1.seconds).beginning_of_month, (Time.now.beginning_of_month-1.seconds)]
       when 'tw' then [Time.now.beginning_of_week, Time.now]
       when 'lw' then [(Time.now.beginning_of_week-1.seconds).beginning_of_week, (Time.now.beginning_of_week-1.seconds)]
       when 'y' then [(Time.new - 1.day).beginning_of_day, ((Time.new - 1.day).end_of_day)]
-      else [Time.now - period.to_i * DAY, Time.now]
+      else [Time.now - period.to_i.days, Time.now]
     end
   end
 
@@ -662,11 +664,7 @@ public
     new_ticket(aliass, title, assignee, priority)
   end
 
-  desc "test", "test action"
-  def test
-  end
-
-  desc "curr PROJECT_ID", "set current project id"
+  desc "curr ID_OR_ALIAS", "set current project id"
   def curr(current)
     set_current(current)
   end
