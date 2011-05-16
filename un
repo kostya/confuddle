@@ -325,20 +325,22 @@ private
 
   # TimeEntry
 
-  def render_times(times)
+  def render_times(times, sum_only = false)
     times = times.sort_by{|t| t.date.to_s }
 
     sum = 0
     title_present = false
 
     times.each do |time|
-      #say time.ticket_id.to_s.ljust(8), :yellow, false
-      title_present = true if time.title.present?
-      say time.title.to_s.mb_chars[0..30].ljust(34), :yellow, false if title_present
-      say time.description.mb_chars[0..50].ljust(54), nil, false
-      say (time.hours.to_s + " h.").ljust(9), nil, false
-      say people[time.person_id].to_s.mb_chars.ljust(13), nil, false
-      say time.date, nil
+      unless sum_only
+        #say time.ticket_id.to_s.ljust(8), :yellow, false
+        title_present = true if time.title.present?
+        say time.title.to_s.mb_chars[0..30].ljust(34), :yellow, false if title_present
+        say time.description.mb_chars[0..50].ljust(54), nil, false
+        say (time.hours.to_s + " h.").ljust(9), nil, false
+        say people[time.person_id].to_s.mb_chars.ljust(13), nil, false
+        say time.date, nil
+      end
       
       sum += time.hours.to_f      
     end
@@ -350,7 +352,7 @@ private
     sum
   end
   
-  def render_people_times(times)
+  def render_people_times(times, sum_only = false)
     groups = {}
     times.each do |time|
       groups[time.person_id] ||= []
@@ -359,7 +361,7 @@ private
     
     groups.each do |group, times|
       say "============== #{people[group].to_s.mb_chars} ================", :on_red, true
-      render_times(times)
+      render_times(times, sum_only)
       say ''
     end
   end
@@ -370,18 +372,18 @@ private
     end
   end
 
-  def times_report(me = false, period = 0)
+  def times_report(me = false, period = 0, sum_only=false)
     p = periods(period)
     t = Unfuzzle::TimeEntry.time_invested(default_project_id, p.at(0), p.at(1))
     t = filter_times(t, me_id) if me
-    render_people_times(t)
+    render_people_times(t, sum_only)
   end
 
-  def all_times_report(me = false, period = 0)
+  def all_times_report(me = false, period = 0, sum_only=false)
     p = periods(period)
     t = Unfuzzle::TimeEntry.all_time_invested(p.at(0), p.at(1))
     t = filter_times(t, me_id) if me
-    render_people_times(t)
+    render_people_times(t, sum_only)
   end
 
   def periods(period)
@@ -629,23 +631,23 @@ public
 
   # Times
   desc "tm PERIOD", "show my times report (PERIOD = [tm lm tw lw y [0-9]+])"
-  def tm(period = 0)
-    times_report(true, period)
+  def tm(period = 0, sum_only='')
+    times_report(true, period, sum_only == 's')
   end
 
   desc "t PERIOD", "show all times report (PERIOD = [tm lm tw lw y [0-9]+])"
-  def t(period = 0)
-    times_report(false, period)
+  def t(period = 0, sum_only='')
+    times_report(false, period, sum_only == 's')
   end
 
   desc "atm PERIOD", "show my times report for account (PERIOD = [tm lm tw lw y [0-9]+])"
-  def atm(period = 0)
-    all_times_report(true, period)
+  def atm(period = 0, sum_only='')
+    all_times_report(true, period, sum_only == 's')
   end
 
   desc "at PERIOD", "show all times report for account (PERIOD = [tm lm tw lw y [0-9]+])"
-  def at(period = 0)
-    all_times_report(false, period)
+  def at(period = 0, sum_only='')
+    all_times_report(false, period, sum_only == 's')
   end
 
   # Add
