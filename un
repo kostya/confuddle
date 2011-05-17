@@ -17,7 +17,8 @@ require 'active_support/time'
 if(WIN)
   require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 else
-  require File.expand_path(File.join(File.dirname(File.readlink(__FILE__)), %w(lib unfuzzle lib unfuzzle) ))
+  dirname = File.symlink?(__FILE__) ? File.dirname(File.readlink(__FILE__)) : File.dirname(__FILE__)
+  require File.expand_path(File.join(dirname, %w(lib unfuzzle lib unfuzzle) ))
 end
 
 require 'thor'
