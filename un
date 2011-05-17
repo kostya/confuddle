@@ -453,7 +453,7 @@ private
     prj, number = parse_number(num)
     t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(prj, number)
 
-    url = "https://linkfeed.unfuddle.com/a#/projects/#{prj}/tickets/by_number/#{t.number}"
+    url = "https://#{Unfuzzle.subdomain}.unfuddle.com/a#/projects/#{prj}/tickets/by_number/#{t.number}"
     if(WIN)
       system("start #{url}")
     elsif(MAC)
