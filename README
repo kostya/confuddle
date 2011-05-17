@@ -26,6 +26,7 @@ Tasks:
   un t PERIOD                           # show all times report (PERIOD = [tm lm tw lw y [0-9]+])
   un tm PERIOD                          # show my times report (PERIOD = [tm lm tw lw y [0-9]+])
   un upd TICKETS NEW_STATUS             # update tickets statuses
+  un op TICKED_ID                       # open ticket in default browser
 
 
 Used gems:

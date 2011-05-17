@@ -4,13 +4,22 @@
 # by Makarchev K. 2011
 # by Varamashvili M. 2011
 
+WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
+MAC = RUBY_PLATFORM['darwin']
+
+
 $KCODE='u'
 
 require 'rubygems'
 require 'yaml'
 require 'active_support'
 require 'active_support/time'
-require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
+if(WIN)
+  require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
+else
+  require File.expand_path(File.join(File.dirname(File.readlink(__FILE__)), %w(lib unfuzzle lib unfuzzle) ))
+end
+
 require 'thor'
 require 'readline'
 
@@ -78,7 +87,7 @@ private
 
 
 
-  WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
+
   require 'iconv' if WIN
   require 'win32console' if WIN
 
@@ -439,6 +448,20 @@ private
     render_ticket(t, cm, times)
   end
 
+  def open_ticket_in_browser(num)
+    prj, number = parse_number(num)
+    t, cm = Unfuzzle::Ticket.find_first_by_project_id_and_number_with_comments(prj, number)
+
+    url = "https://linkfeed.unfuddle.com/a#/projects/#{prj}/tickets/by_number/#{t.number}"
+    if(WIN)
+      system("start #{url}")
+    elsif(MAC)
+      system("open #{url}")
+    else
+      system("xdg-open #{url}")
+    end
+  end
+
   # 
   def update_tickets(tickets, new_status)
     tickets = tickets.split(",").map &:strip
@@ -675,6 +698,12 @@ public
   def alias(project_id, _alias)
     set_alias(project_id, _alias)
   end
+
+  desc "op TICKET_ID", "Open selected ticked from current project in browser"
+  def op(ticket_id)
+    open_ticket_in_browser(ticket_id)
+  end
+
 
   default_task(:my) # by default
 end
