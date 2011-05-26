@@ -23,7 +23,7 @@ module Unfuzzle
     attribute :milestone_id, :from => 'milestone-id', :type => :integer
     attribute :component_id, :from => 'component-id', :type => :integer
     attribute :priority, :type => :integer
-    attribute :number
+    attribute :number, :type => :integer
     attribute :title, :from => 'summary'
     attribute :description
     attribute :due_on, :from => 'due-on', :type => :date
@@ -135,7 +135,8 @@ module Unfuzzle
         'description'  => description,
         'status'       => status,
         'assignee-id'  => assignee_id,
-        'reporter-id'  => reporter_id
+        'reporter-id'  => reporter_id,
+        'hours'        => hours
       }
     end
     

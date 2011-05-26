@@ -7,14 +7,16 @@
 WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
 MAC = RUBY_PLATFORM['darwin']
 
-
 $KCODE='u'
 
 require 'rubygems'
 require 'yaml'
 require 'active_support'
 require 'active_support/time'
+
 if(WIN)
+  require 'iconv'
+  require 'win32console'
   require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
 else
   dirname = File.symlink?(__FILE__) ? File.dirname(File.readlink(__FILE__)) : File.dirname(__FILE__)
@@ -85,12 +87,6 @@ private
 
     File.open(PASS_FILE, "w+"){ |file| file.puts(h.to_yaml) }
   end
-
-
-
-
-  require 'iconv' if WIN
-  require 'win32console' if WIN
 
   if WIN    
     def say(*args)
@@ -190,10 +186,26 @@ private
     @cached_projects
   end
 
+  def cached_tickets
+    return @cached_tickets if @cached_tickets
+    if File.exists?(CACHED_TICKETS) && File.ctime(CACHED_TICKETS) > (Time.now - CACHED_TICKETS_PERIOD)
+      @cached_tickets = YAML.load_file(CACHED_TICKETS)
+    end
+    @cached_tickets
+  end
+
+  def set_cached_tickets(t)
+    File.open(CACHED_TICKETS, 'w'){|f| f.write(YAML.dump(t.map(&:to_hash)))}
+  end
+
   # number with alias
   def number_with_a(ticket)
-    return ticket.number.to_s if ticket.project_id == self.default_project_id
-    self.projects_aliases[ ticket.project_id ].to_s + ticket.number.to_s
+    number_with_a_by_params(ticket.project_id, ticket.number)
+  end
+
+  def number_with_a_by_params(project_id, number)
+    return number.to_s if project_id == self.default_project_id
+    self.projects_aliases[ project_id ].to_s + number.to_s
   end
 
   def find_project_id_by_alias(al)
@@ -598,6 +610,74 @@ private
     end
   end
 
+  def notify_periodic(params = '')
+    t = Unfuzzle::Ticket.all_by_dinamic_report(nil, true).map(&:to_hash)
+
+    # options
+    show_new = true
+    show_statuses = true
+    show_closed = true
+    my = false
+
+    if cached_tickets.size == 0
+      say "first time: caching ..."
+      set_cached_tickets(t)
+      return
+    end
+
+    cached = cached_tickets
+
+    if my
+      cached = cached.select{|c| c['assignee-id'] == me_id || c['reporter-id'] == me_id }
+      t = t.select{|c| c['assignee-id'] == me_id || c['reporter-id'] == me_id }
+    end
+
+    cached_h = {}
+    t_h = {}
+
+    # into hash
+    cached.each{|c| k = [c['project-id'], c['number']]; cached_h[k] = c }
+    t.each{|c| k = [c['project-id'], c['number']]; t_h[k] = c }
+
+
+    message = []
+
+    # new tickets
+    if show_new && (t_h.keys - cached_h.keys).present?
+      (t_h.keys - cached_h.keys).each{|key| message << "New ticket #{number_with_a_by_params(key[0], key[1])}: '#{t_h[key]['summary']}'"}
+    end
+
+    # change status tickets
+    chanched = []
+    t_h.each{|key, value| chanched << key if cached_h[key] && value['status'] != cached_h[key]['status']}
+
+    if show_statuses && chanched.present?
+      chanched.each{|key| message << "Ticket #{number_with_a_by_params(key[0], key[1])}: '#{t_h[key]['summary']}' status to #{t_h[key]['status']}"}
+    end
+
+    # closed tickets
+    if show_closed && (cached_h.keys - t_h.keys).present?
+      (cached_h.keys - t_h.keys).each{|key| message << "Closed ticket #{number_with_a_by_params(key[0], key[1])}: '#{cached_h[key]['summary']}'"}
+    end
+
+    message = message * "\n"
+    notify_message(message)
+
+    set_cached_tickets(t)
+  end
+
+  def notify_message(mes)
+    if WIN
+      say message
+
+    elsif MAC
+      system("growlnotify '#{message}'")
+
+    else
+      system("notify-send -t 5000 \"Unfuddle notification\" \"#{message}\"")
+    end
+  end
+
 public
 
   desc "projects", "show all projects for your account"
@@ -701,6 +781,10 @@ public
     open_ticket_in_browser(ticket_id)
   end
 
+  desc "notify PARAMS", "Notify about changes with tickets by Gnome-Notify, PARAMS='status,comments'"
+  def notify(params = '')
+    notify_periodic params
+  end
 
   default_task(:my) # by default
 end
