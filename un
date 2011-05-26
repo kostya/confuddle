@@ -186,18 +186,27 @@ private
     @cached_projects
   end
 
-  def cached_tickets
+  def cached_tickets(params)
     return @cached_tickets if @cached_tickets
-    if File.exists?(CACHED_TICKETS) && File.ctime(CACHED_TICKETS) > (Time.now - CACHED_TICKETS_PERIOD)
-      @cached_tickets = YAML.load_file(CACHED_TICKETS)
+    if File.exists?(CACHED_TICKETS)
+      yaml = YAML.load_file(CACHED_TICKETS)
+      @cached_tickets = yaml[params.to_s] || []
     else
       @cached_tickets = []
     end
     @cached_tickets
   end
 
-  def set_cached_tickets(t)
-    File.open(CACHED_TICKETS, 'w'){|f| f.write(YAML.dump(t.map(&:to_hash)))}
+  def set_cached_tickets(t, params)
+    yaml = if File.exists?(CACHED_TICKETS)
+      YAML.load_file(CACHED_TICKETS)
+    else
+      {}
+    end
+
+    yaml[params.to_s] = t.map(&:to_hash)
+
+    File.open(CACHED_TICKETS, 'w'){|f| f.write(YAML.dump(yaml))}
   end
 
   # number with alias
@@ -616,20 +625,26 @@ private
     t = Unfuzzle::Ticket.all_by_dinamic_report(nil, true).map(&:to_hash)
 
     # options
-    show_new = true
-    show_statuses = true
-    show_closed = true
-    my = false
+    show_new = true # показывать новые созданные тикеты
+    show_statuses = true # показывать изменения статусов тикетов
+    show_closed = true # показывать какие были закрыты
+    all_tickets = true # учитывать ли все тикеты (не только привязанные ко мне)
+    my_tickets = true # делать нотификацию только тикетов которые созданы мной или на меня
+    all_projects = true # тикеты брать со всех проектов или с текущего
 
-    if cached_tickets.size == 0
+    params = [show_new,show_statuses,show_closed,all_tickets,my_tickets,all_projects]
+
+    t = Unfuzzle::Ticket.all_by_dinamic_report(all_projects ? nil : [default_project_id], !all_tickets).map(&:to_hash)
+
+    cached = cached_tickets(params)
+
+    if cached.size == 0
       say "first time: caching ..."
-      set_cached_tickets(t)
+      set_cached_tickets(t, params)
       return
     end
 
-    cached = cached_tickets
-
-    if my
+    if my_tickets
       cached = cached.select{|c| c['assignee-id'] == me_id || c['reporter-id'] == me_id }
       t = t.select{|c| c['assignee-id'] == me_id || c['reporter-id'] == me_id }
     end
@@ -665,7 +680,7 @@ private
     message = message * "\n"
     notify_message(message)
 
-    set_cached_tickets(t)
+    set_cached_tickets(t, params)
   end
 
   def notify_message(message)
