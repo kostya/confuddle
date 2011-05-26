@@ -190,6 +190,8 @@ private
     return @cached_tickets if @cached_tickets
     if File.exists?(CACHED_TICKETS) && File.ctime(CACHED_TICKETS) > (Time.now - CACHED_TICKETS_PERIOD)
       @cached_tickets = YAML.load_file(CACHED_TICKETS)
+    else
+      @cached_tickets = []
     end
     @cached_tickets
   end
@@ -652,7 +654,7 @@ private
     t_h.each{|key, value| chanched << key if cached_h[key] && value['status'] != cached_h[key]['status']}
 
     if show_statuses && chanched.present?
-      chanched.each{|key| message << "Ticket #{number_with_a_by_params(key[0], key[1])}: '#{t_h[key]['summary']}' status to #{t_h[key]['status']}"}
+      chanched.each{|key| message << "#{number_with_a_by_params(key[0], key[1])}: '#{t_h[key]['summary']}' =>  #{t_h[key]['status']}"}
     end
 
     # closed tickets
@@ -666,7 +668,8 @@ private
     set_cached_tickets(t)
   end
 
-  def notify_message(mes)
+  def notify_message(message)
+    return if message.empty?
     if WIN
       say message
 
