@@ -21,12 +21,13 @@ Tasks:
   un my                                 # show tickets assignee to me for current project
   un mya                                # show tickets (in all projects) assignee to me
   un new ALIAS TITLE [ASSIGNEE] [PRIO]  # create ticket
+  un notify PARAMS                      # Notify about changes with tickets by Gnome-Notify, PARAMS='status,comments'
+  un op TICKET_ID                       # Open selected ticked from current project in browser
   un projects                           # show all projects for your account
   un show NUMBER [t]                    # show ticket by number, [t] - show TimeEntries
   un t PERIOD                           # show all times report (PERIOD = [tm lm tw lw y [0-9]+])
   un tm PERIOD                          # show my times report (PERIOD = [tm lm tw lw y [0-9]+])
   un upd TICKETS NEW_STATUS             # update tickets statuses
-  un op TICKED_ID                       # open ticket in default browser
 
 
 Used gems:
