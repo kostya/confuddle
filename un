@@ -689,7 +689,7 @@ private
       say message
 
     elsif MAC
-      system("growlnotify '#{message}'")
+      system("growlnotify --name 'confuddle' -m '#{message}'")
 
     else
       system("notify-send -t 5000 \"Unfuddle notification\" \"#{message}\"")
