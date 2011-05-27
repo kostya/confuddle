@@ -135,8 +135,8 @@ module Unfuzzle
         'description'  => description,
         'status'       => status,
         'assignee-id'  => assignee_id,
-        'reporter-id'  => reporter_id,
-        'hours'        => hours
+        'reporter-id'  => reporter_id#,
+        #'hours'        => hours
       }
     end
     
