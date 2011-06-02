@@ -686,7 +686,7 @@ private
   def notify_message(message)
     return if message.empty?
     if WIN
-      say message
+      puts message
 
     elsif MAC
       system("growlnotify --name 'confuddle' -s -m '#{message}'")
