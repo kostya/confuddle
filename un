@@ -692,7 +692,7 @@ private
       system("growlnotify --name 'confuddle' -s -m '#{message}'")
 
     else
-      system("notify-send -t 5000 \"Unfuddle notification\" \"#{message}\"")
+      system("dbus-launch notify-send -t 5000 \"Unfuddle notification\" \"#{message}\"")
     end
   end
 
