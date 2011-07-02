@@ -528,7 +528,7 @@ private
     end
   end
   
-  def new_ticket(project_alias, title, assignee = "", priority = 3)
+  def new_ticket(title, assignee = "", priority = 3)
     # find user
     ass_id = find_persons(assignee).first
 
@@ -539,7 +539,7 @@ private
     t.assignee_id = ass_id
     t.reporter_id = find_persons.first # me
     t.priority = prio
-    t.project_id = find_project_id_by_alias(project_alias)
+    t.project_id = default_project_id
 
     say "Now enter description"    
     t.description = read_text
@@ -686,7 +686,7 @@ private
   def notify_message(message)
     return if message.empty?
     if WIN
-      puts message
+      say message
 
     elsif MAC
       system("growlnotify --name 'confuddle' -s -m '#{message}'")
@@ -779,9 +779,9 @@ public
     add_comment(ticket_number)
   end
 
-  desc "new ALIAS TITLE [ASSIGNEE] [PRIO]", "create ticket"
-  def new(aliass, title, assignee = "", priority = 3)
-    new_ticket(aliass, title, assignee, priority)
+  desc "new TITLE [ASSIGNEE] [PRIO]", "create ticket"
+  def new(title, assignee = "", priority = 3)
+    new_ticket(title, assignee, priority)
   end
 
   desc "curr ID_OR_ALIAS", "set current project id"
