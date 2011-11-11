@@ -150,7 +150,15 @@ private
       people = Unfuzzle::Person.all
       @cached_people = {}
       people.each do |person|
-        @cached_people[person.id] = {:name => person.last_name.to_s + " " + person.first_name.to_s.mb_chars[0] + ".", :login => person.username}
+        name = if person.last_name.to_s.blank?
+          person.first_name.to_s.split(" ").reverse.join(" ")
+        else
+          person.last_name.to_s + " " + person.first_name.to_s
+        end
+        name = name.split(" ")
+        name[1] = name[1].mb_chars[0] + "."
+        name = name.join(" ")
+        @cached_people[person.id] = {:name => name, :login => person.username}
       end
       File.open(CACHED_PEOPLE, 'w'){|f| f.write(YAML.dump(@cached_people))}
     end
