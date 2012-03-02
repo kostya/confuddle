@@ -156,7 +156,9 @@ private
           person.last_name.to_s + " " + person.first_name.to_s
         end
         name = name.split(" ")
-        name[1] = name[1].mb_chars[0] + "."
+        if name.size > 0
+          name[1] = name[1].to_s.mb_chars[0].to_s + "."
+        end
         name = name.join(" ")
         @cached_people[person.id] = {:name => name, :login => person.username}
       end
