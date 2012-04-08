@@ -1,7 +1,7 @@
 Console Unfuddle
 ================
 
-Utilite for work with unfuddle.com account from console
+Utility for work with unfuddle.com account from console
 
 1. gem install confuddle
 2. un install

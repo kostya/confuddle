@@ -5,8 +5,8 @@ Gem::Specification.new do |s|
   s.name = %q{confuddle}
   s.version = Un::VERSION
   s.authors = ["Makarchev Konstantin"]
-  s.description = %q{Utilite for work with unfuddle.com account from console}
-  s.summary = %q{}
+  s.description = %q{Utility for work with unfuddle.com account from console}
+  s.summary = %q{Utility for work with unfuddle.com account from console}
 
   s.email = %q{kostya27@gmail.com}
   s.homepage = %q{http://github.com/kostya/confuddle}
