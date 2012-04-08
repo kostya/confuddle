@@ -1,8 +1,13 @@
-Console Unfuddle, by Makarchev K., Varamashvili M.
+Console Unfuddle
+================
 
-1) copy .passwd_to_unfuddle.example.yml to HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
+Utilite for work with unfuddle account from console
 
-2) "un projects"
+1) gem install confuddle
+
+2) Edit HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
+
+3) $ un projects
 and set for each project aliases "un alias"
 and set current project "un curr"
 
@@ -28,7 +33,6 @@ Tasks:
   un t PERIOD                           # show all times report (PERIOD = [tm lm tw lw y [0-9]+])
   un tm PERIOD                          # show my times report (PERIOD = [tm lm tw lw y [0-9]+])
   un upd TICKETS NEW_STATUS             # update tickets statuses
-
 
 Used gems:
   unfuzzle by Patrick Reagan of Viget Labs

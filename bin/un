@@ -7,7 +7,7 @@
 WIN = RUBY_PLATFORM['mingw'] || RUBY_PLATFORM['mswin']
 MAC = RUBY_PLATFORM['darwin']
 
-$KCODE='u'
+$KCODE='u' if RUBY_VERSION <= "1.8.7"
 
 require 'rubygems'
 require 'yaml'
@@ -17,10 +17,10 @@ require 'active_support/time'
 if(WIN)
   require 'iconv'
   require 'win32console'
-  require File.expand_path(File.join(File.dirname(__FILE__), %w(lib unfuzzle lib unfuzzle) ))
+  require File.expand_path(File.join(File.dirname(__FILE__), %w(.. lib unfuzzle lib unfuzzle) ))
 else
   dirname = File.symlink?(__FILE__) ? File.dirname(File.readlink(__FILE__)) : File.dirname(__FILE__)
-  require File.expand_path(File.join(dirname, %w(lib unfuzzle lib unfuzzle) ))
+  require File.expand_path(File.join(dirname, %w(.. lib unfuzzle lib unfuzzle) ))
 end
 
 require 'thor'
@@ -43,15 +43,19 @@ class Unfuddle < Thor
   attr_accessor :default_project_id, :projects_aliases
 
   def initialize(*args)
+    task_name = args[2][:current_task].name rescue 'unknown'
 
-    get_config
+    unless task_name == 'install'
 
-    unless me_id
-      say "Error: no matches for me", :red, true
-      exit 1
+      get_config
+
+      unless me_id
+        say "Error: no matches for me", :red, true
+        exit 1
+      end
+
+      @started_at = Time.now
     end
-
-    @started_at = Time.now
 
     super
   end
@@ -812,6 +816,15 @@ public
   desc "notify PARAMS", "Notify about changes with tickets by Gnome-Notify, PARAMS='status,comments'"
   def notify(params = '')
     notify_periodic params
+  end
+  
+  desc "install", "copy sample config into home"
+  def install
+    require 'fileutils'
+    file = File.expand_path(File.join(File.dirname(__FILE__), %w(.. .passwd_to_unfuddle.example.yml) ))
+    FileUtils.cp(file, PASS_FILE)
+    say("Config copyed!", :green)
+    say("Edit file #{PASS_FILE}!", :red)
   end
 
   default_task(:my) # by default
