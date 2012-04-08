@@ -4,7 +4,7 @@ Console Unfuddle
 Utility for work with unfuddle.com account from console
 
 1. gem install confuddle
-2. un install
+2. $ un install
 3. Edit HOME_DIR/.passwd_to_unfuddle.yml and fill with your own values
 4. $ un projects
 and set for each project aliases "un alias"
