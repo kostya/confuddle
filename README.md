@@ -10,6 +10,7 @@ and set for each project aliases "un alias"
 and set current project "un curr"
 
 Tasks:
+
     un addcm NUMBER                       # add ticket comment
     un addt NUMBER HOURS COMMENT [DATE]   # add time
     un alias PROJECT_ID ALIAS             # set project alias
@@ -33,5 +34,6 @@ Tasks:
     un upd TICKETS NEW_STATUS             # update tickets statuses
 
 Used gems:
+
     unfuzzle by Patrick Reagan of Viget Labs
     grapt by Patrick Reagan
