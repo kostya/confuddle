@@ -64,7 +64,7 @@ class Unfuddle < Thor
 private
   def get_config
     unless File.exists?(PASS_FILE)
-      say "Error: you should create #{PASS_FILE} file", :red, true
+      say "Error: not found #{PASS_FILE}, call `un install`", :red, true
       exit 1
     end
 
