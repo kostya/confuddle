@@ -18,5 +18,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'activesupport', ">=2.3.2"
   s.add_dependency 'thor', ">=0.14.3"
   s.add_dependency 'hpricot'
+  s.add_dependency 'tzinfo'
+  s.add_dependency 'builder'
   
 end
