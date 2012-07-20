@@ -16,3 +16,4 @@ database.yml
 .generators
 .rakeTasks
 *.gem
+Gemfile.lock

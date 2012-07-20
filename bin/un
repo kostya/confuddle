@@ -11,6 +11,8 @@ $KCODE='u' if RUBY_VERSION <= "1.8.7"
 
 require 'rubygems'
 require 'yaml'
+
+gem 'activesupport', '~>3.2'
 require 'active_support'
 require 'active_support/time'
 
