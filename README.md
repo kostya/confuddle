@@ -34,6 +34,11 @@ Tasks:
     un tm PERIOD                          # show my times report (PERIOD = [tm lm tw lw y [0-9]+])
     un upd TICKETS NEW_STATUS             # update tickets statuses
 
+Intalling with rvm (should install for global gemset):
+
+    rvm gemset use global
+    gem install confuddle
+
 Used gems:
 
     unfuzzle by Patrick Reagan of Viget Labs
