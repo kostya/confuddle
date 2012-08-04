@@ -323,7 +323,8 @@ private
       groups[ticket.status] << ticket
     end
     
-    groups.each do |group, tickets|
+    groups.keys.sort.reverse.each do |group|
+      tickets = groups[group]      
       tickets = tickets.sort_by{|t| t.number.to_i}
       tickets.each{|ticket| render_ticket_head(ticket) }
       say ''

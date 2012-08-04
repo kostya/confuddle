@@ -3,7 +3,7 @@ $:.unshift File.dirname(__FILE__)
 require 'uri'
 require 'net/http'
 require 'net/https'
-require 'json'
+#require 'json'
 require 'builder'
 require File.dirname(__FILE__) + '/../../graft/lib/graft/xml'
 

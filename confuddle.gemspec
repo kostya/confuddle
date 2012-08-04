@@ -20,6 +20,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'hpricot'
   s.add_dependency 'tzinfo'
   s.add_dependency 'builder'
-  s.add_dependency 'json'
   
 end

@@ -89,7 +89,7 @@ module Unfuzzle
           res << collection_from(response.body, 'tickets/ticket')
         end
       end
-
+      
       res.flatten
     end
 
